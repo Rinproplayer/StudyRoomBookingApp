@@ -15,9 +15,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { authService } from '../services/authService';
+import { GOOGLE_OAUTH_CONFIG } from '../config/firebase';
 import { useUserStore } from '../store/useUserStore';
 import { RootStackParamList } from '../types/navigation';
 import { Colors } from '../theme/colors';
@@ -33,11 +35,10 @@ export const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Google Login States
-  const [googleModalVisible, setGoogleModalVisible] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
-  const [googleName, setGoogleName] = useState('');
+  // Google OAuth States
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [configModalVisible, setConfigModalVisible] = useState(false);
+  const [webClientIdInput, setWebClientIdInput] = useState('');
 
   const handleLogin = async () => {
     if (!account.trim() || !password.trim()) {
@@ -60,31 +61,59 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const trimmedEmail = googleEmail.trim().toLowerCase();
-    if (!trimmedEmail) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập Email Google của bạn.');
+  const handleGoogleOAuthLogin = async (customClientId?: string) => {
+    try {
+      setIsGoogleLoading(true);
+
+      // Kiểm tra Web Client ID đã được thiết lập chưa
+      let clientId = customClientId || GOOGLE_OAUTH_CONFIG.webClientId;
+      if (!clientId || clientId.includes('your-client-id')) {
+        const cachedId = await AsyncStorage.getItem('@google_web_client_id');
+        if (cachedId && !cachedId.includes('your-client-id')) {
+          clientId = cachedId;
+        } else {
+          // Chưa có Client ID thực tế -> mở popup hướng dẫn nhập Web Client ID từ Firebase Console
+          setIsGoogleLoading(false);
+          setConfigModalVisible(true);
+          return;
+        }
+      }
+
+      const profile = await authService.signInWithGoogleOAuth(clientId);
+      setUser(profile);
+      setConfigModalVisible(false);
+      Alert.alert('Đăng nhập thành công', `Chào mừng ${profile.name} đã đăng nhập qua Google!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể đăng nhập Google.';
+      if (msg.includes('hủy') || msg.includes('cancel') || msg.includes('dismiss')) {
+        return;
+      }
+      Alert.alert('Xác thực Google', msg);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleSaveClientIdAndLogin = async () => {
+    const trimmed = webClientIdInput.trim();
+    if (!trimmed) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng dán Web Client ID từ Firebase Console.');
       return;
     }
-    if (!trimmedEmail.includes('@')) {
-      Alert.alert('Email không hợp lệ', 'Vui lòng nhập đúng định dạng email (ví dụ: tenban@gmail.com).');
+    if (!trimmed.includes('.apps.googleusercontent.com')) {
+      Alert.alert(
+        'Định dạng không hợp lệ',
+        'Web Client ID thường có dạng: 501686531347-xxxx.apps.googleusercontent.com'
+      );
       return;
     }
 
     try {
-      setIsGoogleLoading(true);
-      const profile = await authService.loginWithGoogleAccount({
-        email: trimmedEmail,
-        name: googleName.trim() || undefined,
-      });
-      setUser(profile);
-      setGoogleModalVisible(false);
-      Alert.alert('Thành công', `Chào mừng ${profile.name} đã đăng nhập qua tài khoản Google!`);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Không thể đăng nhập bằng Google.';
-      Alert.alert('Lỗi Google Auth', msg);
-    } finally {
-      setIsGoogleLoading(false);
+      await AsyncStorage.setItem('@google_web_client_id', trimmed);
+      setConfigModalVisible(false);
+      await handleGoogleOAuthLogin(trimmed);
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể lưu cấu hình Client ID.');
     }
   };
 
@@ -167,13 +196,20 @@ export const LoginScreen: React.FC = () => {
 
           {/* Google Sign In CTA */}
           <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={() => setGoogleModalVisible(true)}
+            style={[styles.googleBtn, isGoogleLoading && styles.loginBtnDisabled]}
+            onPress={() => handleGoogleOAuthLogin()}
+            disabled={isGoogleLoading || isLoading}
             activeOpacity={0.8}
           >
             <View style={styles.googleBtnContent}>
-              <Ionicons name="logo-google" size={18} color="#EA4335" />
-              <Text style={styles.googleBtnText}>Đăng nhập bằng Google</Text>
+              {isGoogleLoading ? (
+                <ActivityIndicator size="small" color="#EA4335" />
+              ) : (
+                <Ionicons name="logo-google" size={18} color="#EA4335" />
+              )}
+              <Text style={styles.googleBtnText}>
+                {isGoogleLoading ? 'Đang xác thực Google...' : 'Đăng nhập bằng Google'}
+              </Text>
             </View>
           </TouchableOpacity>
 
@@ -187,14 +223,14 @@ export const LoginScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Google Login Modal */}
+      {/* Cấu hình Google Web Client ID Modal (Chỉ hiển thị khi chưa cấu hình Web Client ID) */}
       <Modal
-        visible={googleModalVisible}
+        visible={configModalVisible}
         animationType="slide"
         transparent
         onRequestClose={() => {
           Keyboard.dismiss();
-          setGoogleModalVisible(false);
+          setConfigModalVisible(false);
         }}
       >
         <KeyboardAvoidingView
@@ -206,19 +242,19 @@ export const LoginScreen: React.FC = () => {
             activeOpacity={1}
             onPress={() => {
               Keyboard.dismiss();
-              setGoogleModalVisible(false);
+              setConfigModalVisible(false);
             }}
           />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="logo-google" size={22} color="#EA4335" />
-                <Text style={styles.modalTitle}>Đăng nhập bằng Google</Text>
+                <Text style={styles.modalTitle}>Cấu hình Google Sign-In</Text>
               </View>
               <TouchableOpacity
                 onPress={() => {
                   Keyboard.dismiss();
-                  setGoogleModalVisible(false);
+                  setConfigModalVisible(false);
                 }}
               >
                 <Ionicons name="close" size={24} color={Colors.textMuted} />
@@ -232,53 +268,34 @@ export const LoginScreen: React.FC = () => {
               bounces={false}
             >
               <Text style={styles.modalSubtitle}>
-                Sử dụng tài khoản Google để đăng nhập nhanh và đồng bộ hồ sơ sinh viên / quản trị viên.
+                Để mở màn hình xác thực Google chính thức (không nhập thủ công), vui lòng cung cấp Web Client ID từ Firebase Console của bạn:
               </Text>
 
-              <Text style={styles.fieldLabel}>Email Google của bạn</Text>
+              <View style={styles.stepsCard}>
+                <Text style={styles.stepText}>1. Vào Firebase Console → Authentication → Sign-in method</Text>
+                <Text style={styles.stepText}>2. Bấm vào dòng "Google" đã bật</Text>
+                <Text style={styles.stepText}>3. Mở mục "Cấu hình Web SDK" và sao chép "ID ứng dụng web"</Text>
+              </View>
+
+              <Text style={styles.fieldLabel}>ID ứng dụng web (Web Client ID)</Text>
               <View style={styles.inputRow}>
-                <Ionicons name="mail-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+                <Ionicons name="key-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="vidu@gmail.com hoặc email trường..."
+                  placeholder="501686531347-xxx.apps.googleusercontent.com"
                   placeholderTextColor={Colors.textMuted}
                   autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={googleEmail}
-                  onChangeText={setGoogleEmail}
+                  value={webClientIdInput}
+                  onChangeText={setWebClientIdInput}
                 />
-              </View>
-
-              <Text style={styles.fieldLabel}>Họ và tên (Tùy chọn)</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="person-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nguyễn Văn A (hoặc tự lấy theo email)"
-                  placeholderTextColor={Colors.textMuted}
-                  value={googleName}
-                  onChangeText={setGoogleName}
-                />
-              </View>
-
-              <View style={styles.googleNoticeBox}>
-                <Ionicons name="shield-checkmark-outline" size={16} color={Colors.primary} />
-                <Text style={styles.googleNoticeText}>
-                  Tài khoản được xác thực và đồng bộ dữ liệu bảo mật trên Cloud Firestore.
-                </Text>
               </View>
 
               <TouchableOpacity
-                style={[styles.googleSubmitBtn, isGoogleLoading && styles.loginBtnDisabled]}
-                onPress={handleGoogleLogin}
-                disabled={isGoogleLoading}
+                style={styles.googleSubmitBtn}
+                onPress={handleSaveClientIdAndLogin}
                 activeOpacity={0.8}
               >
-                {isGoogleLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.googleSubmitBtnText}>Tiếp Tục Với Google</Text>
-                )}
+                <Text style={styles.googleSubmitBtnText}>Lưu & Đăng Nhập Google Ngay</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -488,6 +505,21 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 12,
     marginBottom: 6,
+  },
+  stepsCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  stepText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 18,
   },
   googleNoticeBox: {
     flexDirection: 'row',

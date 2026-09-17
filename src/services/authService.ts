@@ -1,13 +1,19 @@
+import { Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   signInWithCredential,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import { auth, db, GOOGLE_OAUTH_CONFIG } from '../config/firebase';
 import { UserProfile, UserRole } from '../store/useUserStore';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const USERS_COLLECTION = 'users';
 
@@ -152,32 +158,16 @@ export const authService = {
     return fallbackProfile;
   },
 
-  // Đăng nhập bằng Google Account & đồng bộ Firestore
-  loginWithGoogleAccount: async (googleData: {
+  // Lưu hoặc lấy hồ sơ người dùng Google từ Firestore
+  saveOrFetchGoogleUser: async (googleData: {
+    uid: string;
     email: string;
     name?: string;
     photoUrl?: string;
-    idToken?: string;
   }): Promise<UserProfile> => {
     const rawEmail = googleData.email.trim().toLowerCase();
+    const uid = googleData.uid;
 
-    // Nếu có idToken từ Google OAuth Credential, xác thực trực tiếp qua Firebase
-    let uid = '';
-    if (googleData.idToken) {
-      try {
-        const credential = GoogleAuthProvider.credential(googleData.idToken);
-        const cred = await signInWithCredential(auth, credential);
-        uid = cred.user.uid;
-      } catch (e) {
-        console.warn('Firebase credential sign-in:', e);
-      }
-    }
-
-    if (!uid) {
-      uid = `google-${rawEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    }
-
-    // Kiểm tra xem user này đã tồn tại trong Firestore chưa
     const userDocRef = doc(db, USERS_COLLECTION, uid);
     const snap = await getDoc(userDocRef);
 
@@ -185,14 +175,13 @@ export const authService = {
       return snap.data() as UserProfile;
     }
 
-    // Nếu là người dùng Google mới, tự động khởi tạo profile
     const isAdmin = rawEmail.includes('admin') || rawEmail === 'admin@vku.udn.vn';
     const profile: UserProfile = {
       id: uid,
       email: rawEmail,
       name: googleData.name || rawEmail.split('@')[0],
       studentCode: isAdmin ? 'ADMIN-GOOGLE' : `SV-${Math.floor(1000 + Math.random() * 9000)}`,
-      department: isAdmin ? 'Ban Quản trị Cơ sở Vật chất' : 'Sinh viên (Google Auth)',
+      department: isAdmin ? 'Ban Quản trị Cơ sở Vật chất' : 'Khoa Công nghệ Thông tin & AI',
       role: isAdmin ? 'admin' : 'student',
       avatarUrl:
         googleData.photoUrl ||
@@ -203,6 +192,143 @@ export const authService = {
 
     await setDoc(userDocRef, profile);
     return profile;
+  },
+
+  // Đăng nhập bằng Google chuẩn OAuth 2.0 (Xác thực tài khoản Google thực tế)
+  signInWithGoogleOAuth: async (customClientId?: string): Promise<UserProfile> => {
+    // 1. Nếu chạy trên Web: Sử dụng Firebase Popup chính thức của Google
+    if (Platform.OS === 'web') {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const cred = await signInWithPopup(auth, provider);
+      return authService.saveOrFetchGoogleUser({
+        uid: cred.user.uid,
+        email: cred.user.email || '',
+        name: cred.user.displayName || '',
+        photoUrl: cred.user.photoURL || '',
+      });
+    }
+
+    // 2. Nếu chạy trên Mobile (iOS / Android): Mở Google OAuth qua WebBrowser an toàn
+    const clientId = customClientId || GOOGLE_OAUTH_CONFIG.webClientId;
+    const redirectUri = AuthSession.makeRedirectUri({
+      scheme: 'studyroombooking',
+    });
+
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${encodeURIComponent(clientId)}&` +
+      `response_type=token%20id_token&` +
+      `scope=${encodeURIComponent('openid email profile')}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `prompt=select_account&` +
+      `nonce=${Math.random().toString(36).substring(7)}`;
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+
+    if (result.type === 'success' && result.url) {
+      const url = result.url;
+      const params: Record<string, string> = {};
+      const hash = url.split('#')[1] || url.split('?')[1] || '';
+      hash.split('&').forEach((item) => {
+        const [k, v] = item.split('=');
+        if (k && v) params[k] = decodeURIComponent(v);
+      });
+
+      const accessToken = params.access_token;
+      const idToken = params.id_token;
+
+      if (!accessToken && !idToken) {
+        throw new Error('Không nhận được token xác thực từ Google.');
+      }
+
+      // Lấy thông tin người dùng thực tế từ Google OAuth API
+      let googleUserInfo: {
+        sub?: string;
+        email: string;
+        email_verified?: boolean;
+        name?: string;
+        picture?: string;
+      } | null = null;
+
+      if (accessToken) {
+        try {
+          const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (userRes.ok) {
+            googleUserInfo = await userRes.json();
+          }
+        } catch (err) {
+          console.warn('Lỗi lấy userinfo:', err);
+        }
+      }
+
+      if (!googleUserInfo && idToken) {
+        try {
+          const payloadBase64 = idToken.split('.')[1];
+          let decodedJson = '';
+          if (typeof atob === 'function') {
+            decodedJson = atob(payloadBase64);
+          } else {
+            // Manual base64 decode for React Native environments without atob
+            const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+            const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+            let output = '';
+            for (let i = 0; i < padded.length; i += 4) {
+              const enc1 = chars.indexOf(padded.charAt(i));
+              const enc2 = chars.indexOf(padded.charAt(i + 1));
+              const enc3 = chars.indexOf(padded.charAt(i + 2));
+              const enc4 = chars.indexOf(padded.charAt(i + 3));
+              const chr1 = (enc1 << 2) | (enc2 >> 4);
+              const chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+              const chr3 = ((enc3 & 3) << 6) | enc4;
+              output += String.fromCharCode(chr1);
+              if (enc3 !== 64 && enc3 !== -1) output += String.fromCharCode(chr2);
+              if (enc4 !== 64 && enc4 !== -1) output += String.fromCharCode(chr3);
+            }
+            decodedJson = output;
+          }
+          if (decodedJson) {
+            googleUserInfo = JSON.parse(decodedJson);
+          }
+        } catch (e) {
+          console.warn('Lỗi giải mã idToken:', e);
+        }
+      }
+
+      if (!googleUserInfo || !googleUserInfo.email) {
+        throw new Error('Không thể xác thực thông tin tài khoản từ Google.');
+      }
+
+      // Xác thực Firebase Auth Credential với idToken nếu có
+      let firebaseUid = '';
+      if (idToken) {
+        try {
+          const credential = GoogleAuthProvider.credential(idToken);
+          const cred = await signInWithCredential(auth, credential);
+          firebaseUid = cred.user.uid;
+        } catch (e) {
+          console.warn('Firebase signInWithCredential:', e);
+        }
+      }
+
+      return authService.saveOrFetchGoogleUser({
+        uid:
+          firebaseUid ||
+          `google-${googleUserInfo.sub || googleUserInfo.email.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        email: googleUserInfo.email,
+        name: googleUserInfo.name || googleUserInfo.email.split('@')[0],
+        photoUrl: googleUserInfo.picture || '',
+      });
+    }
+
+    if (result.type === 'cancel' || result.type === 'dismiss') {
+      throw new Error('Đã hủy đăng nhập Google.');
+    }
+
+    throw new Error('Quá trình đăng nhập Google không thành công.');
   },
 
   // Đăng xuất
