@@ -210,10 +210,19 @@ export const authService = {
     }
 
     // 2. Nếu chạy trên Mobile (iOS / Android): Mở Google OAuth qua WebBrowser an toàn
-    const clientId = customClientId || GOOGLE_OAUTH_CONFIG.webClientId;
-    const redirectUri = AuthSession.makeRedirectUri({
-      scheme: 'studyroombooking',
-    });
+    let clientId = customClientId;
+    let redirectUri = '';
+
+    if (Platform.OS === 'ios' && GOOGLE_OAUTH_CONFIG.iosClientId) {
+      clientId = customClientId || GOOGLE_OAUTH_CONFIG.iosClientId;
+      const idPrefix = clientId.split('.apps.googleusercontent.com')[0];
+      redirectUri = `com.googleusercontent.apps.${idPrefix}:/oauth2redirect`;
+    } else {
+      clientId = customClientId || GOOGLE_OAUTH_CONFIG.webClientId;
+      redirectUri = AuthSession.makeRedirectUri({
+        scheme: 'studyroombooking',
+      });
+    }
 
     const authUrl =
       `https://accounts.google.com/o/oauth2/v2/auth?` +

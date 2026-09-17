@@ -11,9 +11,10 @@ export const firebaseConfig = {
   appId: "1:501686531347:web:88a47dcc9593f9c7b896e6"
 };
 
-// Cấu hình Google OAuth Web Client ID (Lấy từ Firebase Console > Authentication > Sign-in method > Google)
+// Cấu hình Google OAuth Client IDs (Firebase Console & Google Cloud Console)
 export const GOOGLE_OAUTH_CONFIG = {
   webClientId: '501686531347-sv28j8kc4lldrrf85vl5nc9631f6o3mp.apps.googleusercontent.com',
+  iosClientId: '501686531347-2ekcdkm2ldlg1vivqrs2es40v4k265ka.apps.googleusercontent.com',
 };
 
 // Khởi tạo app

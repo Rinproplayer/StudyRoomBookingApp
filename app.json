@@ -2,7 +2,10 @@
   "expo": {
     "name": "Study Room Booking",
     "slug": "study-room-booking-app",
-    "scheme": "studyroombooking",
+    "scheme": [
+      "studyroombooking",
+      "com.googleusercontent.apps.501686531347-2ekcdkm2ldlg1vivqrs2es40v4k265ka"
+    ],
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

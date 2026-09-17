@@ -65,21 +65,7 @@ export const LoginScreen: React.FC = () => {
     try {
       setIsGoogleLoading(true);
 
-      // Kiểm tra Web Client ID đã được thiết lập chưa
-      let clientId = customClientId || GOOGLE_OAUTH_CONFIG.webClientId;
-      if (!clientId || clientId.includes('your-client-id')) {
-        const cachedId = await AsyncStorage.getItem('@google_web_client_id');
-        if (cachedId && !cachedId.includes('your-client-id')) {
-          clientId = cachedId;
-        } else {
-          // Chưa có Client ID thực tế -> mở popup hướng dẫn nhập Web Client ID từ Firebase Console
-          setIsGoogleLoading(false);
-          setConfigModalVisible(true);
-          return;
-        }
-      }
-
-      const profile = await authService.signInWithGoogleOAuth(clientId);
+      const profile = await authService.signInWithGoogleOAuth(customClientId);
       setUser(profile);
       setConfigModalVisible(false);
       Alert.alert('Đăng nhập thành công', `Chào mừng ${profile.name} đã đăng nhập qua Google!`);
