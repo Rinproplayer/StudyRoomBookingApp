@@ -494,9 +494,9 @@ export const AdminDashboardScreen: React.FC = () => {
               renderItem={({ item }) => (
                 <View style={styles.bookingItemCard}>
                   <View style={styles.bookingTop}>
-                    <View>
+                    <View style={styles.bookingInfo}>
                       <Text style={styles.bookingRoom}>{item.roomName}</Text>
-                      <Text style={styles.bookingStudent}>
+                      <Text style={styles.bookingStudent} numberOfLines={2}>
                         Sinh viên: {item.studentName} ({item.studentId})
                       </Text>
                       <Text style={styles.bookingTime}>
@@ -518,10 +518,16 @@ export const AdminDashboardScreen: React.FC = () => {
                           styles.statusPillText,
                           item.status === 'Upcoming'
                             ? styles.statusPillTextUpcoming
+                            : item.status === 'Completed'
+                            ? styles.statusPillTextCompleted
                             : styles.statusPillTextCancelled,
                         ]}
                       >
-                        {item.status}
+                        {item.status === 'Upcoming'
+                          ? 'Sắp tới'
+                          : item.status === 'Completed'
+                          ? 'Hoàn thành'
+                          : 'Đã hủy'}
                       </Text>
                     </View>
                   </View>
@@ -1231,11 +1237,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: 'hidden',
   },
   bookingTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 8,
+  },
+  bookingInfo: {
+    flex: 1,
+    marginRight: 6,
   },
   bookingRoom: {
     fontSize: 15,
@@ -1247,6 +1259,7 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: '500',
     marginTop: 2,
+    lineHeight: 16,
   },
   bookingTime: {
     fontSize: 12,
@@ -1257,6 +1270,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
+    flexShrink: 0,
+    alignSelf: 'flex-start',
   },
   statusUpcoming: {
     backgroundColor: Colors.availableLight,
@@ -1273,6 +1288,9 @@ const styles = StyleSheet.create({
   },
   statusPillTextUpcoming: {
     color: Colors.availableText,
+  },
+  statusPillTextCompleted: {
+    color: '#1D4ED8',
   },
   statusPillTextCancelled: {
     color: '#991B1B',

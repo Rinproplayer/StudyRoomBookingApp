@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabParamList } from '../types/navigation';
@@ -34,8 +35,8 @@ export const BottomTabNavigator: React.FC = () => {
           backgroundColor: Colors.surface,
           borderTopWidth: 1,
           borderTopColor: Colors.borderLight,
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === 'ios' ? 84 : 62,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 6,
         },
         tabBarActiveTintColor: Colors.primary,
