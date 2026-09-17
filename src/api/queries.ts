@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateBookingPayload } from '../types/booking';
 import { Room, RoomFilterState } from '../types/room';
 import { firestoreService } from '../services/firestoreService';
+import { UserRole } from '../store/useUserStore';
 
 export const QUERY_KEYS = {
   rooms: (filters?: Partial<RoomFilterState>) => ['rooms', filters] as const,
@@ -9,6 +10,7 @@ export const QUERY_KEYS = {
   slots: (roomId: string, date: string) => ['slots', roomId, date] as const,
   bookings: (studentId?: string) => ['bookings', studentId] as const,
   adminBookings: ['adminBookings'] as const,
+  users: ['users'] as const,
 };
 
 export const useRoomsQuery = (filters?: Partial<RoomFilterState>) => {
@@ -109,6 +111,37 @@ export const useDeleteRoomMutation = () => {
     mutationFn: (roomId: string) => firestoreService.deleteRoom(roomId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    },
+  });
+};
+
+// Admin User Management Hooks
+export const useUsersQuery = () => {
+  return useQuery({
+    queryKey: QUERY_KEYS.users,
+    queryFn: () => firestoreService.getAllUsersAdmin(),
+  });
+};
+
+export const useUpdateUserRoleMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: UserRole }) =>
+      firestoreService.updateUserRoleAdmin(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users });
+    },
+  });
+};
+
+export const useDeleteUserMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => firestoreService.deleteUserAdmin(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.users });
     },
   });
 };

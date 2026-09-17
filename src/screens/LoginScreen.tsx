@@ -107,19 +107,6 @@ export const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Account Hints */}
-          <View style={styles.hintBox}>
-            <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.hintText}>
-                • Admin: <Text style={styles.hintBold}>TK: admin</Text> | <Text style={styles.hintBold}>MK: 123456</Text>
-              </Text>
-              <Text style={[styles.hintText, { marginTop: 3 }]}>
-                • Sinh viên: <Text style={styles.hintBold}>TK: student</Text> | <Text style={styles.hintBold}>MK: 123456</Text> (hoặc Đăng ký mới)
-              </Text>
-            </View>
-          </View>
-
           {/* Login CTA */}
           <TouchableOpacity
             style={[styles.loginBtn, isLoading && styles.loginBtnDisabled]}
@@ -224,24 +211,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.textPrimary,
-  },
-  hintBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
-    borderRadius: 10,
-    padding: 10,
-    marginTop: 16,
-    gap: 6,
-  },
-  hintText: {
-    fontSize: 12,
-    color: Colors.primaryDark,
-    flex: 1,
-  },
-  hintBold: {
-    fontWeight: '700',
-    color: Colors.primary,
   },
   loginBtn: {
     backgroundColor: Colors.primary,

@@ -14,9 +14,11 @@ import { db } from '../config/firebase';
 import { Room, RoomFilterState } from '../types/room';
 import { Booking, CreateBookingPayload, TimeSlot } from '../types/booking';
 import { INITIAL_ROOMS, STANDARD_TIME_SLOTS } from '../api/mockData';
+import { UserProfile, UserRole } from '../store/useUserStore';
 
 const ROOMS_COLLECTION = 'rooms';
 const BOOKINGS_COLLECTION = 'bookings';
+const USERS_COLLECTION = 'users';
 
 let hasCheckedSeed = false;
 
@@ -240,5 +242,28 @@ export const firestoreService = {
     return list.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  },
+
+  // Admin: Lấy danh sách toàn bộ người dùng trong hệ thống Firestore
+  getAllUsersAdmin: async (): Promise<UserProfile[]> => {
+    const snap = await getDocs(collection(db, USERS_COLLECTION));
+    return snap.docs.map((d) => ({
+      ...(d.data() as UserProfile),
+      id: d.id,
+    }));
+  },
+
+  // Admin: Cập nhật quyền của người dùng (Sinh viên <-> Admin)
+  updateUserRoleAdmin: async (userId: string, role: UserRole): Promise<void> => {
+    const userRef = doc(db, USERS_COLLECTION, userId);
+    await updateDoc(userRef, {
+      role,
+      membershipTier: role === 'admin' ? 'Quản trị viên Campus' : 'Sinh viên Chính quy',
+    });
+  },
+
+  // Admin: Xóa tài khoản người dùng khỏi hệ thống
+  deleteUserAdmin: async (userId: string): Promise<void> => {
+    await deleteDoc(doc(db, USERS_COLLECTION, userId));
   },
 };

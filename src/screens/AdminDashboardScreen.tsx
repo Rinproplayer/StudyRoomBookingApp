@@ -18,12 +18,16 @@ import {
   useAdminBookingsQuery,
   useCancelBookingMutation,
   useDeleteRoomMutation,
+  useDeleteUserMutation,
   useRoomsQuery,
   useUpdateRoomMutation,
+  useUpdateUserRoleMutation,
+  useUsersQuery,
 } from '../api/queries';
 import { Amenity, Building, Room, RoomStatus } from '../types/room';
 import { StatusBadge } from '../components/StatusBadge';
 import { Colors } from '../theme/colors';
+import { useUserStore, UserProfile, UserRole } from '../store/useUserStore';
 
 const BUILDINGS: Building[] = [
   'Tòa nhà A3',
@@ -45,8 +49,10 @@ const AVAILABLE_AMENITIES: Amenity[] = [
 ];
 
 export const AdminDashboardScreen: React.FC = () => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'rooms' | 'bookings'>('rooms');
+  const [activeAdminTab, setActiveAdminTab] = useState<'rooms' | 'bookings' | 'users'>('rooms');
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
   // Form thêm phòng mới
   const [newName, setNewName] = useState('');
@@ -63,13 +69,32 @@ export const AdminDashboardScreen: React.FC = () => {
     'Điều hòa không khí',
   ]);
 
+  // Form chỉnh sửa thông tin phòng
+  const [editName, setEditName] = useState('');
+  const [editBuilding, setEditBuilding] = useState<Building>('Tòa nhà A3');
+  const [editFloor, setEditFloor] = useState('Tầng 1');
+  const [editCapacity, setEditCapacity] = useState('30');
+  const [editPhotoUrl, setEditPhotoUrl] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editAmenities, setEditAmenities] = useState<Amenity[]>([]);
+
+  // Quản lý người dùng
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'admin'>('all');
+
+  const currentUser = useUserStore((s) => s.user);
+
   // Queries & Mutations
   const { data: rooms, isLoading: isLoadingRooms } = useRoomsQuery();
   const { data: allBookings, isLoading: isLoadingBookings } = useAdminBookingsQuery();
+  const { data: users, isLoading: isLoadingUsers } = useUsersQuery();
+
   const addRoomMutation = useAddRoomMutation();
   const updateRoomMutation = useUpdateRoomMutation();
   const deleteRoomMutation = useDeleteRoomMutation();
   const cancelBookingMutation = useCancelBookingMutation();
+  const updateUserRoleMutation = useUpdateUserRoleMutation();
+  const deleteUserMutation = useDeleteUserMutation();
 
   const handleToggleAmenity = (amenity: Amenity) => {
     setNewAmenities((prev) =>
@@ -144,6 +169,130 @@ export const AdminDashboardScreen: React.FC = () => {
     );
   };
 
+  const handleOpenEditRoom = (room: Room) => {
+    setEditingRoom(room);
+    setEditName(room.name);
+    setEditBuilding(room.building);
+    setEditFloor(room.floor);
+    setEditCapacity(room.capacity.toString());
+    setEditPhotoUrl(room.photoUrl);
+    setEditDescription(room.description || '');
+    setEditAmenities(room.amenities || []);
+    setEditModalVisible(true);
+  };
+
+  const handleToggleEditAmenity = (amenity: Amenity) => {
+    setEditAmenities((prev) =>
+      prev.includes(amenity) ? prev.filter((a) => a !== amenity) : [...prev, amenity]
+    );
+  };
+
+  const handleSaveEditRoom = async () => {
+    if (!editingRoom) return;
+    if (!editName.trim() || !editCapacity.trim()) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập Tên phòng và Sức chứa.');
+      return;
+    }
+
+    try {
+      await updateRoomMutation.mutateAsync({
+        roomId: editingRoom.id,
+        data: {
+          name: editName.trim(),
+          building: editBuilding,
+          floor: editFloor.trim() || 'Tầng 1',
+          capacity: parseInt(editCapacity, 10) || 20,
+          photoUrl: editPhotoUrl.trim() || editingRoom.photoUrl,
+          description: editDescription.trim(),
+          amenities: editAmenities,
+        },
+      });
+
+      Alert.alert('Thành công', `Đã cập nhật thông tin phòng ${editName.trim()}!`);
+      setEditModalVisible(false);
+      setEditingRoom(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể cập nhật thông tin phòng.';
+      Alert.alert('Lỗi', msg);
+    }
+  };
+
+  const handleToggleUserRole = (targetUser: UserProfile) => {
+    if (targetUser.id === currentUser?.id) {
+      Alert.alert('Không thể thao tác', 'Bạn không thể tự thay đổi quyền hạn của tài khoản đang đăng nhập.');
+      return;
+    }
+
+    const nextRole: UserRole = targetUser.role === 'admin' ? 'student' : 'admin';
+    const actionText = nextRole === 'admin' ? 'Cấp quyền Quản trị viên (Admin)' : 'Hạ quyền xuống Sinh viên';
+
+    Alert.alert(
+      'Xác nhận đổi quyền',
+      `Bạn có chắc chắn muốn ${actionText} cho người dùng ${targetUser.name} (${targetUser.email})?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đồng ý',
+          onPress: () => {
+            updateUserRoleMutation.mutate(
+              { userId: targetUser.id, role: nextRole },
+              {
+                onSuccess: () => {
+                  Alert.alert('Thành công', `Đã cập nhật quyền của ${targetUser.name} thành ${nextRole === 'admin' ? 'Quản trị viên' : 'Sinh viên'}!`);
+                },
+                onError: (err: any) => {
+                  Alert.alert('Lỗi', err?.message || 'Không thể cập nhật quyền người dùng.');
+                },
+              }
+            );
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteUser = (targetUser: UserProfile) => {
+    if (targetUser.id === currentUser?.id) {
+      Alert.alert('Không thể thao tác', 'Bạn không thể tự xóa tài khoản đang đăng nhập.');
+      return;
+    }
+
+    Alert.alert(
+      'Xác nhận xóa người dùng',
+      `Bạn có chắc muốn xóa vĩnh viễn tài khoản của ${targetUser.name} (${targetUser.email}) khỏi hệ thống?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa ngay',
+          style: 'destructive',
+          onPress: () => {
+            deleteUserMutation.mutate(targetUser.id, {
+              onSuccess: () => {
+                Alert.alert('Thành công', `Đã xóa người dùng ${targetUser.name}.`);
+              },
+              onError: (err: any) => {
+                Alert.alert('Lỗi', err?.message || 'Không thể xóa người dùng.');
+              },
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const filteredUsers = (users || []).filter((u) => {
+    if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
+    if (userSearchQuery.trim()) {
+      const q = userSearchQuery.toLowerCase();
+      const matchName = u.name?.toLowerCase().includes(q);
+      const matchEmail = u.email?.toLowerCase().includes(q);
+      const matchCode = u.studentCode?.toLowerCase().includes(q);
+      const matchDept = u.department?.toLowerCase().includes(q);
+      return matchName || matchEmail || matchCode || matchDept;
+    }
+    return true;
+  });
+
   return (
     <View style={styles.screen}>
       {/* Overview Stats Bar */}
@@ -159,10 +308,10 @@ export const AdminDashboardScreen: React.FC = () => {
           <Text style={styles.statLabel}>Lịch sắp tới</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statNum, { color: Colors.available }]}>
-            {rooms?.filter((r) => r.status === 'Available').length ?? 0}
+          <Text style={[styles.statNum, { color: '#8B5CF6' }]}>
+            {users?.length ?? 0}
           </Text>
-          <Text style={styles.statLabel}>Phòng trống</Text>
+          <Text style={styles.statLabel}>Người dùng</Text>
         </View>
       </View>
 
@@ -174,11 +323,11 @@ export const AdminDashboardScreen: React.FC = () => {
         >
           <Ionicons
             name="business-outline"
-            size={16}
+            size={15}
             color={activeAdminTab === 'rooms' ? Colors.primary : Colors.textSecondary}
           />
           <Text style={[styles.switchText, activeAdminTab === 'rooms' && styles.switchTextActive]}>
-            Quản Lý Phòng ({rooms?.length ?? 0})
+            Phòng ({rooms?.length ?? 0})
           </Text>
         </TouchableOpacity>
 
@@ -188,13 +337,29 @@ export const AdminDashboardScreen: React.FC = () => {
         >
           <Ionicons
             name="calendar-outline"
-            size={16}
+            size={15}
             color={activeAdminTab === 'bookings' ? Colors.primary : Colors.textSecondary}
           />
           <Text
             style={[styles.switchText, activeAdminTab === 'bookings' && styles.switchTextActive]}
           >
-            Lịch Đặt Toàn Trường ({allBookings?.length ?? 0})
+            Lịch Đặt ({allBookings?.length ?? 0})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.switchBtn, activeAdminTab === 'users' && styles.switchBtnActive]}
+          onPress={() => setActiveAdminTab('users')}
+        >
+          <Ionicons
+            name="people-outline"
+            size={15}
+            color={activeAdminTab === 'users' ? Colors.primary : Colors.textSecondary}
+          />
+          <Text
+            style={[styles.switchText, activeAdminTab === 'users' && styles.switchTextActive]}
+          >
+            Người Dùng ({users?.length ?? 0})
           </Text>
         </TouchableOpacity>
       </View>
@@ -232,12 +397,22 @@ export const AdminDashboardScreen: React.FC = () => {
                       </Text>
                       <Text style={styles.roomCapacity}>Sức chứa: {item.capacity} chỗ</Text>
                     </View>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteRoom(item)}
-                      style={styles.deleteBtn}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#DC2626" />
-                    </TouchableOpacity>
+                    <View style={styles.roomActions}>
+                      <TouchableOpacity
+                        onPress={() => handleOpenEditRoom(item)}
+                        style={styles.editBtn}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteRoom(item)}
+                        style={styles.deleteBtn}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="trash-outline" size={18} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Status buttons */}
@@ -366,6 +541,181 @@ export const AdminDashboardScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Tab 3: Quản Trị Người Dùng */}
+      {activeAdminTab === 'users' && (
+        <View style={{ flex: 1 }}>
+          {/* Search bar & Role Filter */}
+          <View style={styles.userSearchContainer}>
+            <View style={styles.userSearchRow}>
+              <Ionicons name="search-outline" size={18} color={Colors.textSecondary} />
+              <TextInput
+                style={styles.userSearchInput}
+                placeholder="Tìm theo tên, MSSV, email, khoa..."
+                placeholderTextColor={Colors.textMuted}
+                value={userSearchQuery}
+                onChangeText={setUserSearchQuery}
+              />
+              {userSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setUserSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.userFilterRow}>
+              <TouchableOpacity
+                style={[styles.userFilterChip, userRoleFilter === 'all' && styles.userFilterChipActive]}
+                onPress={() => setUserRoleFilter('all')}
+              >
+                <Text
+                  style={[
+                    styles.userFilterChipText,
+                    userRoleFilter === 'all' && styles.userFilterChipTextActive,
+                  ]}
+                >
+                  Tất cả ({users?.length ?? 0})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.userFilterChip, userRoleFilter === 'student' && styles.userFilterChipActive]}
+                onPress={() => setUserRoleFilter('student')}
+              >
+                <Text
+                  style={[
+                    styles.userFilterChipText,
+                    userRoleFilter === 'student' && styles.userFilterChipTextActive,
+                  ]}
+                >
+                  Sinh viên ({users?.filter((u) => u.role === 'student').length ?? 0})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.userFilterChip, userRoleFilter === 'admin' && styles.userFilterChipActive]}
+                onPress={() => setUserRoleFilter('admin')}
+              >
+                <Text
+                  style={[
+                    styles.userFilterChipText,
+                    userRoleFilter === 'admin' && styles.userFilterChipTextActive,
+                  ]}
+                >
+                  Quản trị viên ({users?.filter((u) => u.role === 'admin').length ?? 0})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {isLoadingUsers ? (
+            <ActivityIndicator style={{ marginTop: 40 }} size="large" color={Colors.primary} />
+          ) : (
+            <FlatList
+              data={filteredUsers}
+              keyExtractor={(u) => u.id}
+              contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+              ListEmptyComponent={
+                <View style={styles.emptyUsersBox}>
+                  <Ionicons name="people-outline" size={48} color={Colors.textMuted} />
+                  <Text style={styles.emptyUsersTitle}>Không tìm thấy người dùng</Text>
+                  <Text style={styles.emptyUsersSub}>
+                    Hãy thử tìm kiếm với từ khóa khác hoặc chuyển bộ lọc.
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const isMe = item.id === currentUser?.id;
+                const isAdmin = item.role === 'admin';
+
+                return (
+                  <View style={styles.userCard}>
+                    <View style={styles.userCardTop}>
+                      <Image source={{ uri: item.avatarUrl }} style={styles.userAvatar} />
+                      <View style={styles.userInfo}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={styles.userName}>{item.name}</Text>
+                          {isMe && (
+                            <View style={styles.isMeBadge}>
+                              <Text style={styles.isMeText}>Bạn</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={styles.userCode}>
+                          {item.studentCode ? `Mã: ${item.studentCode}` : 'Mã: N/A'}
+                        </Text>
+                        <Text style={styles.userEmail}>{item.email}</Text>
+                        <Text style={styles.userDept}>{item.department || 'Đại học VKU'}</Text>
+                      </View>
+
+                      {/* Role Badge */}
+                      <View
+                        style={[
+                          styles.userRoleBadge,
+                          isAdmin ? styles.userRoleBadgeAdmin : styles.userRoleBadgeStudent,
+                        ]}
+                      >
+                        <Ionicons
+                          name={isAdmin ? 'shield-checkmark' : 'school-outline'}
+                          size={12}
+                          color={isAdmin ? '#92400E' : Colors.primary}
+                        />
+                        <Text
+                          style={[
+                            styles.userRoleBadgeText,
+                            isAdmin ? styles.userRoleBadgeTextAdmin : styles.userRoleBadgeTextStudent,
+                          ]}
+                        >
+                          {isAdmin ? 'Quản trị' : 'Sinh viên'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Actions */}
+                    <View style={styles.userActionRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.roleToggleBtn,
+                          isAdmin ? styles.roleDemoteBtn : styles.rolePromoteBtn,
+                          isMe && styles.actionBtnDisabled,
+                        ]}
+                        onPress={() => handleToggleUserRole(item)}
+                        disabled={isMe || updateUserRoleMutation.isPending}
+                      >
+                        <Ionicons
+                          name={isAdmin ? 'arrow-down-circle-outline' : 'shield-outline'}
+                          size={14}
+                          color={isAdmin ? '#B45309' : Colors.primary}
+                        />
+                        <Text
+                          style={[
+                            styles.roleToggleBtnText,
+                            isAdmin ? styles.roleDemoteBtnText : styles.rolePromoteBtnText,
+                          ]}
+                        >
+                          {isAdmin ? 'Hạ xuống Sinh viên' : 'Cấp quyền Quản trị (Admin)'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.userDeleteBtn, isMe && styles.actionBtnDisabled]}
+                        onPress={() => handleDeleteUser(item)}
+                        disabled={isMe || deleteUserMutation.isPending}
+                      >
+                        <Ionicons
+                          name="trash-outline"
+                          size={16}
+                          color={isMe ? Colors.textMuted : '#DC2626'}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          )}
+        </View>
+      )}
+
       {/* Modal Thêm Phòng Mới */}
       <Modal visible={addModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
@@ -480,6 +830,127 @@ export const AdminDashboardScreen: React.FC = () => {
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
                   <Text style={styles.saveBtnText}>Lưu Lên Firestore</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Chỉnh Sửa Thông Tin Phòng */}
+      <Modal visible={editModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Chỉnh Sửa Thông Tin Phòng</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>Tên phòng</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Tên phòng học / lab..."
+                placeholderTextColor={Colors.textMuted}
+                value={editName}
+                onChangeText={setEditName}
+              />
+
+              <Text style={styles.fieldLabel}>Tòa nhà</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
+                {BUILDINGS.map((bldg) => (
+                  <TouchableOpacity
+                    key={bldg}
+                    style={[styles.pill, editBuilding === bldg && styles.pillActive]}
+                    onPress={() => setEditBuilding(bldg)}
+                  >
+                    <Text style={[styles.pillText, editBuilding === bldg && styles.pillTextActive]}>
+                      {bldg}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Vị trí tầng</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Tầng 1"
+                    placeholderTextColor={Colors.textMuted}
+                    value={editFloor}
+                    onChangeText={setEditFloor}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.fieldLabel}>Sức chứa (chỗ)</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="30"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="numeric"
+                    value={editCapacity}
+                    onChangeText={setEditCapacity}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.fieldLabel}>Link ảnh phòng (URL)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://images.unsplash.com/..."
+                placeholderTextColor={Colors.textMuted}
+                value={editPhotoUrl}
+                onChangeText={setEditPhotoUrl}
+              />
+
+              <Text style={styles.fieldLabel}>Trang thiết bị đi kèm</Text>
+              <View style={styles.amenityWrap}>
+                {AVAILABLE_AMENITIES.map((amenity) => {
+                  const active = editAmenities.includes(amenity);
+                  return (
+                    <TouchableOpacity
+                      key={amenity}
+                      style={[styles.amenityChip, active && styles.amenityChipActive]}
+                      onPress={() => handleToggleEditAmenity(amenity)}
+                    >
+                      <Text style={[styles.amenityText, active && styles.amenityTextActive]}>
+                        {amenity}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.fieldLabel}>Mô tả phòng</Text>
+              <TextInput
+                style={[styles.input, { height: 70 }]}
+                placeholder="Giới thiệu không gian phòng..."
+                placeholderTextColor={Colors.textMuted}
+                multiline
+                value={editDescription}
+                onChangeText={setEditDescription}
+              />
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={handleSaveEditRoom}
+                disabled={updateRoomMutation.isPending}
+              >
+                {updateRoomMutation.isPending ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveBtnText}>Lưu Thay Đổi</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -618,8 +1089,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
+  roomActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  editBtn: {
+    padding: 7,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryLight,
+  },
   deleteBtn: {
-    padding: 8,
+    padding: 7,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
   },
   statusActionRow: {
     flexDirection: 'row',
@@ -873,5 +1356,207 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // User Management Styles
+  userSearchContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  userSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 42,
+    gap: 8,
+  },
+  userSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: Colors.textPrimary,
+  },
+  userFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 10,
+  },
+  userFilterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  userFilterChipActive: {
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  userFilterChipText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  userFilterChipTextActive: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  userCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  userCardTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  userAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1.5,
+    borderColor: Colors.primaryBorder,
+  },
+  userInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  isMeBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#10B981',
+  },
+  isMeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  userCode: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  userEmail: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  userDept: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  userRoleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  userRoleBadgeAdmin: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  userRoleBadgeStudent: {
+    backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.primaryBorder,
+  },
+  userRoleBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  userRoleBadgeTextAdmin: {
+    color: '#92400E',
+  },
+  userRoleBadgeTextStudent: {
+    color: Colors.primary,
+  },
+  userActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    gap: 10,
+  },
+  roleToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  rolePromoteBtn: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  roleDemoteBtn: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  roleToggleBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  rolePromoteBtnText: {
+    color: Colors.primary,
+  },
+  roleDemoteBtnText: {
+    color: '#B45309',
+  },
+  userDeleteBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#FEE2E2',
+  },
+  actionBtnDisabled: {
+    opacity: 0.35,
+  },
+  emptyUsersBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+    padding: 20,
+  },
+  emptyUsersTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginTop: 12,
+  },
+  emptyUsersSub: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
