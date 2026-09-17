@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
@@ -14,6 +15,26 @@ import { auth, db, GOOGLE_OAUTH_CONFIG } from '../config/firebase';
 import { UserProfile, UserRole } from '../store/useUserStore';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Helper tạo Code Verifier cho chuẩn PKCE
+const generateCodeVerifier = (length = 64): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+};
+
+// Helper băm SHA-256 tạo Code Challenge cho Google OAuth
+const generateCodeChallenge = async (verifier: string): Promise<string> => {
+  const hash = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    verifier,
+    { encoding: Crypto.CryptoEncoding.BASE64 }
+  );
+  return hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
 
 const USERS_COLLECTION = 'users';
 
@@ -224,28 +245,63 @@ export const authService = {
       });
     }
 
+    const codeVerifier = generateCodeVerifier(64);
+    const codeChallenge = await generateCodeChallenge(codeVerifier);
+
     const authUrl =
       `https://accounts.google.com/o/oauth2/v2/auth?` +
       `client_id=${encodeURIComponent(clientId)}&` +
-      `response_type=token%20id_token&` +
+      `response_type=code&` +
       `scope=${encodeURIComponent('openid email profile')}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-      `prompt=select_account&` +
-      `nonce=${Math.random().toString(36).substring(7)}`;
+      `code_challenge=${encodeURIComponent(codeChallenge)}&` +
+      `code_challenge_method=S256&` +
+      `prompt=select_account`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
     if (result.type === 'success' && result.url) {
       const url = result.url;
       const params: Record<string, string> = {};
-      const hash = url.split('#')[1] || url.split('?')[1] || '';
-      hash.split('&').forEach((item) => {
+      const query = url.split('?')[1] || url.split('#')[1] || '';
+      query.split('&').forEach((item) => {
         const [k, v] = item.split('=');
         if (k && v) params[k] = decodeURIComponent(v);
       });
 
-      const accessToken = params.access_token;
-      const idToken = params.id_token;
+      let accessToken = params.access_token;
+      let idToken = params.id_token;
+
+      // Trao đổi mã authorization code lấy tokens qua Google OAuth Token Endpoint (Chuẩn PKCE)
+      if (params.code) {
+        try {
+          const tokenBody =
+            `client_id=${encodeURIComponent(clientId)}&` +
+            `code=${encodeURIComponent(params.code)}&` +
+            `code_verifier=${encodeURIComponent(codeVerifier)}&` +
+            `grant_type=authorization_code&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: tokenBody,
+          });
+
+          if (tokenRes.ok) {
+            const tokenData = await tokenRes.json();
+            accessToken = tokenData.access_token;
+            idToken = tokenData.id_token;
+          } else {
+            const errText = await tokenRes.text();
+            console.error('Lỗi đổi code lấy token:', errText);
+          }
+        } catch (e) {
+          console.error('Lỗi gọi token endpoint:', e);
+        }
+      }
 
       if (!accessToken && !idToken) {
         throw new Error('Không nhận được token xác thực từ Google.');
