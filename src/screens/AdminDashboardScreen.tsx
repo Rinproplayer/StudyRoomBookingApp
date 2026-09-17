@@ -4,7 +4,10 @@ import {
   Alert,
   FlatList,
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -717,17 +720,45 @@ export const AdminDashboardScreen: React.FC = () => {
       )}
 
       {/* Modal Thêm Phòng Mới */}
-      <Modal visible={addModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      <Modal
+        visible={addModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setAddModalVisible(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setAddModalVisible(false);
+            }}
+          />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Thêm Phòng Mới Vào Campus</Text>
-              <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAddModalVisible(false);
+                }}
+              >
                 <Ionicons name="close" size={24} color={Colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.fieldLabel}>Tên phòng (ví dụ: Lab AI A3-205)</Text>
               <TextInput
                 style={styles.input}
@@ -817,7 +848,10 @@ export const AdminDashboardScreen: React.FC = () => {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setAddModalVisible(false)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setAddModalVisible(false);
+                }}
               >
                 <Text style={styles.cancelBtnText}>Hủy</Text>
               </TouchableOpacity>
@@ -834,21 +868,49 @@ export const AdminDashboardScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Modal Chỉnh Sửa Thông Tin Phòng */}
-      <Modal visible={editModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      <Modal
+        visible={editModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setEditModalVisible(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setEditModalVisible(false);
+            }}
+          />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Chỉnh Sửa Thông Tin Phòng</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setEditModalVisible(false);
+                }}
+              >
                 <Ionicons name="close" size={24} color={Colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
               <Text style={styles.fieldLabel}>Tên phòng</Text>
               <TextInput
                 style={styles.input}
@@ -938,7 +1000,10 @@ export const AdminDashboardScreen: React.FC = () => {
             <View style={styles.modalFooter}>
               <TouchableOpacity
                 style={styles.cancelBtn}
-                onPress={() => setEditModalVisible(false)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setEditModalVisible(false);
+                }}
               >
                 <Text style={styles.cancelBtnText}>Hủy</Text>
               </TouchableOpacity>
@@ -955,7 +1020,7 @@ export const AdminDashboardScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1239,8 +1304,11 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
@@ -1248,6 +1316,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     maxHeight: '90%',
     paddingBottom: 24,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',

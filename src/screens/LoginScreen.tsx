@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -10,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -186,20 +188,49 @@ export const LoginScreen: React.FC = () => {
       </ScrollView>
 
       {/* Google Login Modal */}
-      <Modal visible={googleModalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+      <Modal
+        visible={googleModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setGoogleModalVisible(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => {
+              Keyboard.dismiss();
+              setGoogleModalVisible(false);
+            }}
+          />
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name="logo-google" size={22} color="#EA4335" />
                 <Text style={styles.modalTitle}>Đăng nhập bằng Google</Text>
               </View>
-              <TouchableOpacity onPress={() => setGoogleModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setGoogleModalVisible(false);
+                }}
+              >
                 <Ionicons name="close" size={24} color={Colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <View style={styles.modalBody}>
+            <ScrollView
+              contentContainerStyle={styles.modalBody}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
               <Text style={styles.modalSubtitle}>
                 Sử dụng tài khoản Google để đăng nhập nhanh và đồng bộ hồ sơ sinh viên / quản trị viên.
               </Text>
@@ -249,9 +280,9 @@ export const LoginScreen: React.FC = () => {
                   <Text style={styles.googleSubmitBtnText}>Tiếp Tục Với Google</Text>
                 )}
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </KeyboardAvoidingView>
   );
@@ -411,14 +442,22 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
   },
   modalCard: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingBottom: 36,
+    maxHeight: '85%',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -435,6 +474,7 @@ const styles = StyleSheet.create({
   },
   modalBody: {
     padding: 18,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
   },
   modalSubtitle: {
     fontSize: 13,
