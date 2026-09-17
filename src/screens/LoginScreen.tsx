@@ -107,12 +107,17 @@ export const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Admin Hint Tag */}
+          {/* Account Hints */}
           <View style={styles.hintBox}>
             <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
-            <Text style={styles.hintText}>
-              Tài khoản Quản trị viên: <Text style={styles.hintBold}>TK: admin</Text> | <Text style={styles.hintBold}>MK: 123456</Text>
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.hintText}>
+                • Admin: <Text style={styles.hintBold}>TK: admin</Text> | <Text style={styles.hintBold}>MK: 123456</Text>
+              </Text>
+              <Text style={[styles.hintText, { marginTop: 3 }]}>
+                • Sinh viên: <Text style={styles.hintBold}>TK: student</Text> | <Text style={styles.hintBold}>MK: 123456</Text> (hoặc Đăng ký mới)
+              </Text>
+            </View>
           </View>
 
           {/* Login CTA */}

@@ -21,6 +21,18 @@ const ADMIN_PROFILE: UserProfile = {
   notificationsEnabled: true,
 };
 
+const DEFAULT_STUDENT_PROFILE: UserProfile = {
+  id: 'student-vku-default',
+  email: 'student@vku.udn.vn',
+  name: 'Nguyễn Văn An (Sinh viên)',
+  studentCode: '23IT.B143',
+  department: 'Khoa Công nghệ Thông tin & AI',
+  role: 'student',
+  avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+  membershipTier: 'Sinh viên Chính quy',
+  notificationsEnabled: true,
+};
+
 export const authService = {
   // Đăng ký tài khoản mới trên Firebase Auth & lưu profile vào Firestore
   register: async (
@@ -85,7 +97,29 @@ export const authService = {
       return ADMIN_PROFILE;
     }
 
-    // 2. Đăng nhập cho các tài khoản sinh viên / người dùng thông thường
+    // 2. Kiểm tra tài khoản Sinh viên mẫu mặc định: TK: student hoặc sinhvien, MK: 123456
+    if (
+      (rawAccount === 'student' || rawAccount === 'sinhvien' || rawAccount === 'student@vku.udn.vn') &&
+      pass === '123456'
+    ) {
+      try {
+        await setDoc(doc(db, USERS_COLLECTION, DEFAULT_STUDENT_PROFILE.id), DEFAULT_STUDENT_PROFILE, { merge: true });
+        try {
+          await signInWithEmailAndPassword(auth, 'student@vku.udn.vn', '123456');
+        } catch {
+          try {
+            await createUserWithEmailAndPassword(auth, 'student@vku.udn.vn', '123456');
+          } catch {
+            // Đã tồn tại hoặc xác thực cục bộ
+          }
+        }
+      } catch (e) {
+        console.warn('Lưu student profile:', e);
+      }
+      return DEFAULT_STUDENT_PROFILE;
+    }
+
+    // 3. Đăng nhập cho các tài khoản sinh viên / người dùng thông thường qua Firebase Auth
     let emailToUse = rawAccount;
     if (!emailToUse.includes('@')) {
       emailToUse = `${emailToUse}@vku.udn.vn`;
