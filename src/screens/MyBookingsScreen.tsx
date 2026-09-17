@@ -31,7 +31,7 @@ export const MyBookingsScreen: React.FC = () => {
     isLoading,
     isRefetching,
     refetch,
-  } = useBookingsQuery(user.id);
+  } = useBookingsQuery(user?.id);
 
   const cancelMutation = useCancelBookingMutation();
 

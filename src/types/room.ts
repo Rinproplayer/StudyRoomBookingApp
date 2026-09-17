@@ -6,7 +6,7 @@ export type Building =
   | 'Giảng đường Khoa học'
   | 'Không gian Sáng tạo';
 
-export type RoomStatus = 'Available' | 'Occupied';
+export type RoomStatus = 'Available' | 'Occupied' | 'Maintenance';
 
 export type Amenity =
   | 'Wi-Fi tốc độ cao'

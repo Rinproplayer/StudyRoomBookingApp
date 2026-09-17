@@ -15,8 +15,14 @@ import { useBookingsQuery } from '../api/queries';
 import { Colors } from '../theme/colors';
 
 export const ProfileScreen: React.FC = () => {
-  const { user, toggleNotifications } = useUserStore();
-  const { data: bookings } = useBookingsQuery(user.id);
+  const {
+    user,
+    toggleNotifications,
+    logout,
+    loginAsDemoStudent,
+    loginAsDemoAdmin,
+  } = useUserStore();
+  const { data: bookings } = useBookingsQuery(user?.id);
 
   const totalBookings = bookings?.length ?? 0;
   const activeBookings = bookings?.filter((b) => b.status === 'Upcoming').length ?? 0;
@@ -27,6 +33,21 @@ export const ProfileScreen: React.FC = () => {
     Alert.alert(title, msg);
   };
 
+  const handleLogout = () => {
+    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản không?', [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Đăng xuất',
+        style: 'destructive',
+        onPress: logout,
+      },
+    ]);
+  };
+
+  if (!user) return null;
+
+  const isAdmin = user.role === 'admin';
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {/* Student Profile Card */}
@@ -35,10 +56,28 @@ export const ProfileScreen: React.FC = () => {
           <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
           <View style={styles.profileInfo}>
             <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.studentId}>MSSV: {user.studentCode}</Text>
-            <View style={styles.tierPill}>
-              <Ionicons name="school-outline" size={12} color={Colors.primary} />
-              <Text style={styles.tierText}>Sinh viên Đại học Chính quy</Text>
+            <Text style={styles.studentId}>
+              {isAdmin ? 'Mã cán bộ' : 'MSSV'}: {user.studentCode}
+            </Text>
+            <View
+              style={[
+                styles.tierPill,
+                isAdmin && { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
+              ]}
+            >
+              <Ionicons
+                name={isAdmin ? 'shield-checkmark' : 'school-outline'}
+                size={12}
+                color={isAdmin ? '#B45309' : Colors.primary}
+              />
+              <Text
+                style={[
+                  styles.tierText,
+                  isAdmin && { color: '#92400E' },
+                ]}
+              >
+                {isAdmin ? 'Quản trị viên Campus' : 'Sinh viên Chính quy'}
+              </Text>
             </View>
           </View>
         </View>
@@ -55,12 +94,62 @@ export const ProfileScreen: React.FC = () => {
         </View>
       </View>
 
+      {/* Switch Demo Roles directly */}
+      <View style={styles.roleSwitchCard}>
+        <Text style={styles.roleSwitchTitle}>Chuyển Đổi Nhanh Vai Trò (Testing Demo)</Text>
+        <View style={styles.roleBtnRow}>
+          <TouchableOpacity
+            style={[
+              styles.demoRoleBtn,
+              !isAdmin && styles.demoRoleBtnActive,
+            ]}
+            onPress={loginAsDemoStudent}
+          >
+            <Ionicons
+              name="school"
+              size={14}
+              color={!isAdmin ? Colors.primary : Colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.demoRoleText,
+                !isAdmin && styles.demoRoleTextActive,
+              ]}
+            >
+              Sinh viên mẫu
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.demoRoleBtn,
+              isAdmin && styles.demoRoleBtnActiveAdmin,
+            ]}
+            onPress={loginAsDemoAdmin}
+          >
+            <Ionicons
+              name="shield-checkmark"
+              size={14}
+              color={isAdmin ? '#B45309' : Colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.demoRoleText,
+                isAdmin && styles.demoRoleTextActiveAdmin,
+              ]}
+            >
+              Quản trị viên (Admin)
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       {/* Booking Statistics */}
-      <Text style={styles.sectionTitle}>Thống Kê Học Tập</Text>
+      <Text style={styles.sectionTitle}>Thống Kê Hoạt Động</Text>
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
           <Text style={styles.statNumber}>{totalBookings}</Text>
-          <Text style={styles.statLabel}>Tổng lượt đặt</Text>
+          <Text style={styles.statLabel}>Lịch cá nhân</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={[styles.statNumber, { color: Colors.available }]}>{activeBookings}</Text>
@@ -119,11 +208,22 @@ export const ProfileScreen: React.FC = () => {
           </View>
           <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
         </TouchableOpacity>
+
+        {/* Logout */}
+        <TouchableOpacity style={[styles.settingItem, { borderBottomWidth: 0 }]} onPress={handleLogout}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="log-out-outline" size={20} color="#DC2626" />
+            <Text style={[styles.settingText, { color: '#DC2626', fontWeight: '600' }]}>
+              Đăng xuất tài khoản
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#DC2626" />
+        </TouchableOpacity>
       </View>
 
       {/* App Version Info */}
       <View style={styles.footerInfo}>
-        <Text style={styles.versionText}>Study Room Booking App v1.0.0 (Expo SDK 57)</Text>
+        <Text style={styles.versionText}>Study Room Booking App v1.0.0 (Expo SDK 57 + Firebase)</Text>
         <Text style={styles.copyrightText}>Hệ thống đặt phòng học và nghiên cứu Campus</Text>
       </View>
     </ScrollView>
@@ -150,7 +250,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    marginBottom: 20,
+    marginBottom: 14,
   },
   avatarRow: {
     flexDirection: 'row',
@@ -183,6 +283,8 @@ const styles = StyleSheet.create({
     gap: 4,
     alignSelf: 'flex-start',
     backgroundColor: Colors.primaryLight,
+    borderWidth: 1,
+    borderColor: Colors.primaryBorder,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -208,6 +310,59 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
   },
+  roleSwitchCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 12,
+    marginBottom: 16,
+  },
+  roleSwitchTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  roleBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  demoRoleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: 6,
+  },
+  demoRoleBtnActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  demoRoleBtnActiveAdmin: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#F59E0B',
+  },
+  demoRoleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  demoRoleTextActive: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  demoRoleTextActiveAdmin: {
+    color: '#92400E',
+    fontWeight: '700',
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -220,7 +375,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 22,
+    marginBottom: 20,
   },
   statBox: {
     flex: 1,

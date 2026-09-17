@@ -5,11 +5,16 @@ import { BottomTabParamList } from '../types/navigation';
 import { BrowseRoomsScreen } from '../screens/BrowseRoomsScreen';
 import { MyBookingsScreen } from '../screens/MyBookingsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { AdminDashboardScreen } from '../screens/AdminDashboardScreen';
+import { useUserStore } from '../store/useUserStore';
 import { Colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
 
 export const BottomTabNavigator: React.FC = () => {
+  const user = useUserStore((s) => s.user);
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -36,7 +41,7 @@ export const BottomTabNavigator: React.FC = () => {
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textMuted,
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
@@ -58,6 +63,26 @@ export const BottomTabNavigator: React.FC = () => {
         }}
       />
 
+      {/* Tab Admin: Chỉ hiển thị khi đăng nhập tài khoản Quản trị viên */}
+      {isAdmin && (
+        <Tab.Screen
+          name="AdminDashboard"
+          component={AdminDashboardScreen}
+          options={{
+            title: 'Quản Trị Campus (Admin)',
+            tabBarLabel: 'Quản trị',
+            tabBarActiveTintColor: '#B45309',
+            tabBarIcon: ({ size, focused }) => (
+              <Ionicons
+                name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'}
+                size={size}
+                color={focused ? '#B45309' : Colors.textMuted}
+              />
+            ),
+          }}
+        />
+      )}
+
       {/* Tab 2: Lịch đặt */}
       <Tab.Screen
         name="MyBookings"
@@ -75,7 +100,7 @@ export const BottomTabNavigator: React.FC = () => {
         }}
       />
 
-      {/* Tab 3: Hồ sơ */}
+      {/* Tab 3: Hồ sơ cá nhân */}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}

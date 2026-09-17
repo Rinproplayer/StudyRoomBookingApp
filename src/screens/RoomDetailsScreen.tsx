@@ -91,8 +91,8 @@ export const RoomDetailsScreen: React.FC = () => {
         roomId,
         date: selectedDate,
         slotId: selectedSlot.id,
-        studentId: user.id,
-        studentName: user.name,
+        studentId: user?.id || 'STU-GUEST',
+        studentName: user?.name || 'Sinh viên',
         purpose: purpose.trim() || 'Thảo luận nhóm & Tự học',
       });
 
