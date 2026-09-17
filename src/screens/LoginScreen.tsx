@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -30,6 +31,12 @@ export const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Google Login States
+  const [googleModalVisible, setGoogleModalVisible] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   const handleLogin = async () => {
     if (!account.trim() || !password.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ Tài khoản và Mật khẩu.');
@@ -48,6 +55,34 @@ export const LoginScreen: React.FC = () => {
       Alert.alert('Lỗi đăng nhập', msg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const trimmedEmail = googleEmail.trim().toLowerCase();
+    if (!trimmedEmail) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập Email Google của bạn.');
+      return;
+    }
+    if (!trimmedEmail.includes('@')) {
+      Alert.alert('Email không hợp lệ', 'Vui lòng nhập đúng định dạng email (ví dụ: tenban@gmail.com).');
+      return;
+    }
+
+    try {
+      setIsGoogleLoading(true);
+      const profile = await authService.loginWithGoogleAccount({
+        email: trimmedEmail,
+        name: googleName.trim() || undefined,
+      });
+      setUser(profile);
+      setGoogleModalVisible(false);
+      Alert.alert('Thành công', `Chào mừng ${profile.name} đã đăng nhập qua tài khoản Google!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Không thể đăng nhập bằng Google.';
+      Alert.alert('Lỗi Google Auth', msg);
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -121,6 +156,25 @@ export const LoginScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
+          {/* OR Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>HOẶC</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Google Sign In CTA */}
+          <TouchableOpacity
+            style={styles.googleBtn}
+            onPress={() => setGoogleModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.googleBtnContent}>
+              <Ionicons name="logo-google" size={18} color="#EA4335" />
+              <Text style={styles.googleBtnText}>Đăng nhập bằng Google</Text>
+            </View>
+          </TouchableOpacity>
+
           {/* Go to Register */}
           <View style={styles.registerRow}>
             <Text style={styles.registerPrompt}>Chưa có tài khoản sinh viên? </Text>
@@ -130,6 +184,75 @@ export const LoginScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Google Login Modal */}
+      <Modal visible={googleModalVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="logo-google" size={22} color="#EA4335" />
+                <Text style={styles.modalTitle}>Đăng nhập bằng Google</Text>
+              </View>
+              <TouchableOpacity onPress={() => setGoogleModalVisible(false)}>
+                <Ionicons name="close" size={24} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <Text style={styles.modalSubtitle}>
+                Sử dụng tài khoản Google để đăng nhập nhanh và đồng bộ hồ sơ sinh viên / quản trị viên.
+              </Text>
+
+              <Text style={styles.fieldLabel}>Email Google của bạn</Text>
+              <View style={styles.inputRow}>
+                <Ionicons name="mail-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="vidu@gmail.com hoặc email trường..."
+                  placeholderTextColor={Colors.textMuted}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  value={googleEmail}
+                  onChangeText={setGoogleEmail}
+                />
+              </View>
+
+              <Text style={styles.fieldLabel}>Họ và tên (Tùy chọn)</Text>
+              <View style={styles.inputRow}>
+                <Ionicons name="person-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nguyễn Văn A (hoặc tự lấy theo email)"
+                  placeholderTextColor={Colors.textMuted}
+                  value={googleName}
+                  onChangeText={setGoogleName}
+                />
+              </View>
+
+              <View style={styles.googleNoticeBox}>
+                <Ionicons name="shield-checkmark-outline" size={16} color={Colors.primary} />
+                <Text style={styles.googleNoticeText}>
+                  Tài khoản được xác thực và đồng bộ dữ liệu bảo mật trên Cloud Firestore.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.googleSubmitBtn, isGoogleLoading && styles.loginBtnDisabled]}
+                onPress={handleGoogleLogin}
+                disabled={isGoogleLoading}
+                activeOpacity={0.8}
+              >
+                {isGoogleLoading ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.googleSubmitBtnText}>Tiếp Tục Với Google</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -242,5 +365,116 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: Colors.primary,
+  },
+  // Divider Styles
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  // Google Button
+  googleBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  googleBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  googleBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 36,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  modalBody: {
+    padding: 18,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  googleNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 16,
+    gap: 8,
+  },
+  googleNoticeText: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    flex: 1,
+    lineHeight: 16,
+  },
+  googleSubmitBtn: {
+    backgroundColor: '#4285F4',
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  googleSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

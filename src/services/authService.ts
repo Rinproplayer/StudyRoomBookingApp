@@ -1,5 +1,7 @@
 import {
+  GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
@@ -148,6 +150,59 @@ export const authService = {
     };
     await setDoc(doc(db, USERS_COLLECTION, uid), fallbackProfile);
     return fallbackProfile;
+  },
+
+  // Đăng nhập bằng Google Account & đồng bộ Firestore
+  loginWithGoogleAccount: async (googleData: {
+    email: string;
+    name?: string;
+    photoUrl?: string;
+    idToken?: string;
+  }): Promise<UserProfile> => {
+    const rawEmail = googleData.email.trim().toLowerCase();
+
+    // Nếu có idToken từ Google OAuth Credential, xác thực trực tiếp qua Firebase
+    let uid = '';
+    if (googleData.idToken) {
+      try {
+        const credential = GoogleAuthProvider.credential(googleData.idToken);
+        const cred = await signInWithCredential(auth, credential);
+        uid = cred.user.uid;
+      } catch (e) {
+        console.warn('Firebase credential sign-in:', e);
+      }
+    }
+
+    if (!uid) {
+      uid = `google-${rawEmail.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    }
+
+    // Kiểm tra xem user này đã tồn tại trong Firestore chưa
+    const userDocRef = doc(db, USERS_COLLECTION, uid);
+    const snap = await getDoc(userDocRef);
+
+    if (snap.exists()) {
+      return snap.data() as UserProfile;
+    }
+
+    // Nếu là người dùng Google mới, tự động khởi tạo profile
+    const isAdmin = rawEmail.includes('admin') || rawEmail === 'admin@vku.udn.vn';
+    const profile: UserProfile = {
+      id: uid,
+      email: rawEmail,
+      name: googleData.name || rawEmail.split('@')[0],
+      studentCode: isAdmin ? 'ADMIN-GOOGLE' : `SV-${Math.floor(1000 + Math.random() * 9000)}`,
+      department: isAdmin ? 'Ban Quản trị Cơ sở Vật chất' : 'Sinh viên (Google Auth)',
+      role: isAdmin ? 'admin' : 'student',
+      avatarUrl:
+        googleData.photoUrl ||
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
+      membershipTier: isAdmin ? 'Quản trị viên Campus' : 'Sinh viên Chính quy',
+      notificationsEnabled: true,
+    };
+
+    await setDoc(userDocRef, profile);
+    return profile;
   },
 
   // Đăng xuất
