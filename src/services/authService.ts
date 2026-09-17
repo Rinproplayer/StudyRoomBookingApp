@@ -9,6 +9,18 @@ import { UserProfile, UserRole } from '../store/useUserStore';
 
 const USERS_COLLECTION = 'users';
 
+const ADMIN_PROFILE: UserProfile = {
+  id: 'admin-vku-root',
+  email: 'admin@vku.udn.vn',
+  name: 'Ban Quản Trị Hệ Thống (Admin)',
+  studentCode: 'ADMIN',
+  department: 'Ban Quản trị Phòng Lab & Thư viện Campus',
+  role: 'admin',
+  avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&auto=format&fit=crop&q=80',
+  membershipTier: 'Quản trị viên Cấp cao',
+  notificationsEnabled: true,
+};
+
 export const authService = {
   // Đăng ký tài khoản mới trên Firebase Auth & lưu profile vào Firestore
   register: async (
@@ -18,12 +30,17 @@ export const authService = {
     studentCode: string,
     role: UserRole = 'student'
   ): Promise<UserProfile> => {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    let emailToRegister = email.trim().toLowerCase();
+    if (!emailToRegister.includes('@')) {
+      emailToRegister = `${emailToRegister}@vku.udn.vn`;
+    }
+
+    const cred = await createUserWithEmailAndPassword(auth, emailToRegister, pass);
     const uid = cred.user.uid;
 
     const profile: UserProfile = {
       id: uid,
-      email,
+      email: emailToRegister,
       name,
       studentCode,
       department: role === 'admin' ? 'Ban Quản trị Cơ sở Vật chất' : 'Công nghệ Thông tin & AI',
@@ -40,9 +57,41 @@ export const authService = {
     return profile;
   },
 
-  // Đăng nhập với Email và Mật khẩu
-  login: async (email: string, pass: string): Promise<UserProfile> => {
-    const cred = await signInWithEmailAndPassword(auth, email, pass);
+  // Đăng nhập với Tài khoản (Hỗ trợ TK: admin / MK: 123456)
+  login: async (accountInput: string, pass: string): Promise<UserProfile> => {
+    const rawAccount = accountInput.trim().toLowerCase();
+
+    // 1. Kiểm tra tài khoản Quản trị viên theo yêu cầu: TK: admin, MK: 123456
+    if (
+      (rawAccount === 'admin' || rawAccount === 'admin@vku.udn.vn') &&
+      pass === '123456'
+    ) {
+      // Đảm bảo document admin tồn tại trên Firestore
+      try {
+        await setDoc(doc(db, USERS_COLLECTION, ADMIN_PROFILE.id), ADMIN_PROFILE, { merge: true });
+        // Cố gắng đăng nhập hoặc tạo tài khoản trên Firebase Auth nếu có thể
+        try {
+          await signInWithEmailAndPassword(auth, 'admin@vku.udn.vn', '123456');
+        } catch {
+          try {
+            await createUserWithEmailAndPassword(auth, 'admin@vku.udn.vn', '123456');
+          } catch {
+            // Đã tồn tại hoặc xác thực cục bộ
+          }
+        }
+      } catch (e) {
+        console.warn('Lưu admin profile:', e);
+      }
+      return ADMIN_PROFILE;
+    }
+
+    // 2. Đăng nhập cho các tài khoản sinh viên / người dùng thông thường
+    let emailToUse = rawAccount;
+    if (!emailToUse.includes('@')) {
+      emailToUse = `${emailToUse}@vku.udn.vn`;
+    }
+
+    const cred = await signInWithEmailAndPassword(auth, emailToUse, pass);
     const uid = cred.user.uid;
 
     const docSnap = await getDoc(doc(db, USERS_COLLECTION, uid));
@@ -50,14 +99,14 @@ export const authService = {
       return docSnap.data() as UserProfile;
     }
 
-    // Fallback nếu tài khoản chưa có profile trong Firestore
-    const defaultRole: UserRole = email.includes('admin') ? 'admin' : 'student';
+    // Fallback profile nếu tài khoản chưa có trong Firestore
+    const defaultRole: UserRole = emailToUse.includes('admin') ? 'admin' : 'student';
     const fallbackProfile: UserProfile = {
       id: uid,
-      email,
-      name: email.split('@')[0],
-      studentCode: defaultRole === 'admin' ? 'ADMIN-VKU' : '23IT.B143',
-      department: defaultRole === 'admin' ? 'Ban Quản lý Campus' : 'Kỹ thuật Phần mềm',
+      email: emailToUse,
+      name: emailToUse.split('@')[0],
+      studentCode: defaultRole === 'admin' ? 'ADMIN' : '23IT.B143',
+      department: defaultRole === 'admin' ? 'Ban Quản trị' : 'Sinh viên VKU',
       role: defaultRole,
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&auto=format&fit=crop&q=80',
       membershipTier: defaultRole === 'admin' ? 'Quản trị viên' : 'Sinh viên',

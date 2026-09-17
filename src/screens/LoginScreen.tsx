@@ -23,28 +23,28 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const LoginScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { setUser, loginAsDemoStudent, loginAsDemoAdmin } = useUserStore();
+  const { setUser } = useUserStore();
 
-  const [email, setEmail] = useState('');
+  const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ Email và Mật khẩu.');
+    if (!account.trim() || !password.trim()) {
+      Alert.alert('Thiếu thông tin', 'Vui lòng nhập đầy đủ Tài khoản và Mật khẩu.');
       return;
     }
 
     try {
       setIsLoading(true);
-      const userProfile = await authService.login(email.trim(), password);
+      const userProfile = await authService.login(account.trim(), password);
       setUser(userProfile);
     } catch (err: unknown) {
       const msg =
         err instanceof Error
           ? err.message
-          : 'Đăng nhập không thành công. Vui lòng kiểm tra lại email hoặc mật khẩu!';
+          : 'Đăng nhập không thành công. Vui lòng kiểm tra lại tài khoản hoặc mật khẩu!';
       Alert.alert('Lỗi đăng nhập', msg);
     } finally {
       setIsLoading(false);
@@ -60,7 +60,7 @@ export const LoginScreen: React.FC = () => {
         {/* App Logo & Header */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
-            <Ionicons name="school" size={40} color={Colors.primary} />
+            <Ionicons name="school" size={44} color={Colors.primary} />
           </View>
           <Text style={styles.appTitle}>Study Room Booking</Text>
           <Text style={styles.appSubtitle}>
@@ -70,20 +70,19 @@ export const LoginScreen: React.FC = () => {
 
         {/* Input Form */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Đăng Nhập Tài Khoản</Text>
+          <Text style={styles.formTitle}>Đăng Nhập</Text>
 
-          {/* Email */}
-          <Text style={styles.inputLabel}>Email trường hoặc cá nhân</Text>
+          {/* Account */}
+          <Text style={styles.inputLabel}>Tài khoản hoặc Email</Text>
           <View style={styles.inputRow}>
-            <Ionicons name="mail-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
+            <Ionicons name="person-outline" size={18} color={Colors.textSecondary} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="ten.sinhvien@vku.udn.vn"
+              placeholder="admin hoặc email sinh viên..."
               placeholderTextColor={Colors.textMuted}
-              keyboardType="email-address"
               autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
+              value={account}
+              onChangeText={setAccount}
             />
           </View>
 
@@ -108,6 +107,14 @@ export const LoginScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
+          {/* Admin Hint Tag */}
+          <View style={styles.hintBox}>
+            <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
+            <Text style={styles.hintText}>
+              Tài khoản Quản trị viên: <Text style={styles.hintBold}>TK: admin</Text> | <Text style={styles.hintBold}>MK: 123456</Text>
+            </Text>
+          </View>
+
           {/* Login CTA */}
           <TouchableOpacity
             style={[styles.loginBtn, isLoading && styles.loginBtnDisabled]}
@@ -124,46 +131,11 @@ export const LoginScreen: React.FC = () => {
 
           {/* Go to Register */}
           <View style={styles.registerRow}>
-            <Text style={styles.registerPrompt}>Chưa có tài khoản? </Text>
+            <Text style={styles.registerPrompt}>Chưa có tài khoản sinh viên? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Đăng ký ngay</Text>
+              <Text style={styles.registerLink}>Đăng ký mới</Text>
             </TouchableOpacity>
           </View>
-        </View>
-
-        {/* Demo 1-Click Login Section */}
-        <View style={styles.demoSection}>
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>HOẶC TRẢI NGHIỆM NHANH (DEMO)</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.demoStudentBtn}
-            onPress={loginAsDemoStudent}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="person-circle-outline" size={22} color={Colors.primary} />
-            <View style={styles.demoTextWrap}>
-              <Text style={styles.demoTitle}>Đăng nhập Sinh viên mẫu</Text>
-              <Text style={styles.demoSub}>Alex Nguyễn (MSSV: 23IT.B143)</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={16} color={Colors.primary} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.demoAdminBtn}
-            onPress={loginAsDemoAdmin}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="shield-checkmark" size={20} color="#B45309" />
-            <View style={styles.demoTextWrap}>
-              <Text style={styles.demoAdminTitle}>Đăng nhập Quản trị viên (Admin)</Text>
-              <Text style={styles.demoSub}>Quyền thêm/sửa/xóa phòng & duyệt lịch</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={16} color="#B45309" />
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -177,24 +149,24 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 24,
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 32,
   },
   logoCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   appTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.textPrimary,
     marginBottom: 4,
@@ -203,12 +175,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center',
-    maxWidth: 280,
+    maxWidth: 290,
   },
   formCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 20,
+    padding: 22,
     borderWidth: 1,
     borderColor: Colors.border,
     shadowColor: '#0F172A',
@@ -218,7 +190,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   formTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: 16,
@@ -248,13 +220,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textPrimary,
   },
+  hintBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 16,
+    gap: 6,
+  },
+  hintText: {
+    fontSize: 12,
+    color: Colors.primaryDark,
+    flex: 1,
+  },
+  hintBold: {
+    fontWeight: '700',
+    color: Colors.primary,
+  },
   loginBtn: {
     backgroundColor: Colors.primary,
-    height: 48,
+    height: 50,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 18,
   },
   loginBtnDisabled: {
     backgroundColor: '#93C5FD',
@@ -268,7 +258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 18,
   },
   registerPrompt: {
     fontSize: 13,
@@ -278,64 +268,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: Colors.primary,
-  },
-  demoSection: {
-    marginTop: 28,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    marginHorizontal: 10,
-    letterSpacing: 0.5,
-  },
-  demoStudentBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: Colors.primaryBorder,
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 10,
-    gap: 10,
-  },
-  demoTextWrap: {
-    flex: 1,
-  },
-  demoTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.primaryDark,
-  },
-  demoSub: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  demoAdminBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFBEB',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    borderRadius: 14,
-    padding: 12,
-    gap: 10,
-  },
-  demoAdminTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#92400E',
   },
 });

@@ -19,8 +19,6 @@ export const ProfileScreen: React.FC = () => {
     user,
     toggleNotifications,
     logout,
-    loginAsDemoStudent,
-    loginAsDemoAdmin,
   } = useUserStore();
   const { data: bookings } = useBookingsQuery(user?.id);
 
@@ -91,56 +89,6 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.detailRow}>
           <Ionicons name="business-outline" size={16} color={Colors.textSecondary} />
           <Text style={styles.detailText}>{user.department}</Text>
-        </View>
-      </View>
-
-      {/* Switch Demo Roles directly */}
-      <View style={styles.roleSwitchCard}>
-        <Text style={styles.roleSwitchTitle}>Chuyển Đổi Nhanh Vai Trò (Testing Demo)</Text>
-        <View style={styles.roleBtnRow}>
-          <TouchableOpacity
-            style={[
-              styles.demoRoleBtn,
-              !isAdmin && styles.demoRoleBtnActive,
-            ]}
-            onPress={loginAsDemoStudent}
-          >
-            <Ionicons
-              name="school"
-              size={14}
-              color={!isAdmin ? Colors.primary : Colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.demoRoleText,
-                !isAdmin && styles.demoRoleTextActive,
-              ]}
-            >
-              Sinh viên mẫu
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.demoRoleBtn,
-              isAdmin && styles.demoRoleBtnActiveAdmin,
-            ]}
-            onPress={loginAsDemoAdmin}
-          >
-            <Ionicons
-              name="shield-checkmark"
-              size={14}
-              color={isAdmin ? '#B45309' : Colors.textSecondary}
-            />
-            <Text
-              style={[
-                styles.demoRoleText,
-                isAdmin && styles.demoRoleTextActiveAdmin,
-              ]}
-            >
-              Quản trị viên (Admin)
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -309,59 +257,6 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 13,
     color: Colors.textSecondary,
-  },
-  roleSwitchCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 12,
-    marginBottom: 16,
-  },
-  roleSwitchTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-  },
-  roleBtnRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  demoRoleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 6,
-  },
-  demoRoleBtnActive: {
-    backgroundColor: Colors.primaryLight,
-    borderColor: Colors.primary,
-  },
-  demoRoleBtnActiveAdmin: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#F59E0B',
-  },
-  demoRoleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-  },
-  demoRoleTextActive: {
-    color: Colors.primary,
-    fontWeight: '700',
-  },
-  demoRoleTextActiveAdmin: {
-    color: '#92400E',
-    fontWeight: '700',
   },
   sectionTitle: {
     fontSize: 14,
