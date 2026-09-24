@@ -35,13 +35,17 @@ export const BookingSuccessModal: React.FC<Props> = ({
             <Ionicons name="checkmark" size={32} color="#FFFFFF" />
           </Animated.View>
 
-          <Text style={styles.title}>Đặt Phòng Thành Công!</Text>
+          <Text style={styles.title}>Gửi Yêu Cầu Thành Công!</Text>
           <Text style={styles.subtitle}>
-            Phòng học của bạn đã được xác nhận giữ chỗ thành công.
+            Lịch đặt của bạn đang ở trạng thái Chờ duyệt. Quản trị viên sẽ sớm xem xét và phê duyệt.
           </Text>
 
           {/* Booking Summary Box */}
           <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.summaryBox}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.label}>Trạng thái</Text>
+              <Text style={[styles.valueBold, { color: '#D97706' }]}>Chờ duyệt ⏳</Text>
+            </View>
             <View style={styles.summaryRow}>
               <Text style={styles.label}>Phòng học</Text>
               <Text style={styles.valueBold}>{booking.roomName}</Text>
