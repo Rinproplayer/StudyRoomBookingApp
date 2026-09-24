@@ -2,23 +2,35 @@ import { Booking, CreateBookingPayload, TimeSlot } from '../types/booking';
 import { INITIAL_BOOKINGS, STANDARD_TIME_SLOTS } from './mockData';
 import { roomService } from './roomService';
 
+import { isBookingPast } from '../services/firestoreService';
+
 let bookingsDatabase: Booking[] = [...INITIAL_BOOKINGS];
 
 export const bookingService = {
   getBookings: async (studentId?: string): Promise<Booking[]> => {
     await new Promise((resolve) => setTimeout(resolve, 150));
+    const list = bookingsDatabase.map((b) => {
+      if (b.status !== 'Cancelled' && isBookingPast(b.date, b.endTime)) {
+        return { ...b, status: 'Completed' as const };
+      }
+      return b;
+    });
     if (studentId) {
-      return bookingsDatabase.filter((b) => b.studentId === studentId);
+      return list.filter((b) => b.studentId === studentId);
     }
-    return [...bookingsDatabase];
+    return [...list];
   },
 
   getRoomSlotsForDate: async (roomId: string, date: string): Promise<TimeSlot[]> => {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Active bookings on that date for that room
+    // Active bookings on that date for that room (Pending or Upcoming, not past)
     const activeBookingsOnDate = bookingsDatabase.filter(
-      (b) => b.roomId === roomId && b.date === date && b.status === 'Upcoming'
+      (b) =>
+        b.roomId === roomId &&
+        b.date === date &&
+        (b.status === 'Upcoming' || b.status === 'Pending') &&
+        !isBookingPast(b.date, b.endTime)
     );
 
     return STANDARD_TIME_SLOTS.map((slot) => {
@@ -42,7 +54,8 @@ export const bookingService = {
         b.roomId === payload.roomId &&
         b.date === payload.date &&
         b.slotId === payload.slotId &&
-        b.status === 'Upcoming'
+        (b.status === 'Upcoming' || b.status === 'Pending') &&
+        !isBookingPast(b.date, b.endTime)
     );
 
     if (roomConflict) {
@@ -57,7 +70,8 @@ export const bookingService = {
         b.studentId === payload.studentId &&
         b.date === payload.date &&
         b.slotId === payload.slotId &&
-        b.status === 'Upcoming'
+        (b.status === 'Upcoming' || b.status === 'Pending') &&
+        !isBookingPast(b.date, b.endTime)
     );
 
     if (studentConflict) {
@@ -90,7 +104,7 @@ export const bookingService = {
       studentId: payload.studentId,
       studentName: payload.studentName,
       purpose: payload.purpose || 'Group Study & Research',
-      status: 'Upcoming',
+      status: 'Pending',
       createdAt: new Date().toISOString(),
       checkInCode: `SRB-${randomPin}`,
     };
@@ -111,6 +125,22 @@ export const bookingService = {
     bookingsDatabase[index] = {
       ...bookingsDatabase[index],
       status: 'Cancelled',
+    };
+
+    return true;
+  },
+
+  approveBooking: async (bookingId: string): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const index = bookingsDatabase.findIndex((b) => b.id === bookingId);
+    if (index === -1) {
+      throw new Error('Không tìm thấy lịch đặt phòng.');
+    }
+
+    bookingsDatabase[index] = {
+      ...bookingsDatabase[index],
+      status: 'Upcoming',
     };
 
     return true;

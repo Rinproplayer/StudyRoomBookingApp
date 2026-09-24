@@ -17,14 +17,14 @@ import { useBookingsQuery, useCancelBookingMutation } from '../api/queries';
 import { useUserStore } from '../store/useUserStore';
 import { Colors } from '../theme/colors';
 
-const STATUS_TABS: { key: BookingStatus; label: string }[] = [
+const STATUS_TABS: { key: 'Upcoming' | 'Completed' | 'Cancelled'; label: string }[] = [
   { key: 'Upcoming', label: 'Sắp tới' },
   { key: 'Completed', label: 'Đã học' },
   { key: 'Cancelled', label: 'Đã hủy' },
 ];
 
 export const MyBookingsScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<BookingStatus>('Upcoming');
+  const [activeTab, setActiveTab] = useState<'Upcoming' | 'Completed' | 'Cancelled'>('Upcoming');
   const user = useUserStore((s) => s.user);
 
   const {
@@ -36,7 +36,12 @@ export const MyBookingsScreen: React.FC = () => {
 
   const cancelMutation = useCancelBookingMutation();
 
-  const filteredBookings = bookings?.filter((b) => b.status === activeTab) ?? [];
+  const filteredBookings = (bookings ?? []).filter((b) => {
+    if (activeTab === 'Upcoming') {
+      return b.status === 'Upcoming' || b.status === 'Pending';
+    }
+    return b.status === activeTab;
+  });
 
   const handleCancelBooking = (booking: Booking) => {
     Alert.alert(
@@ -62,13 +67,16 @@ export const MyBookingsScreen: React.FC = () => {
   };
 
   const renderBookingItem = ({ item, index }: { item: Booking; index: number }) => {
+    const isPending = item.status === 'Pending';
     const isUpcoming = item.status === 'Upcoming';
     const isCompleted = item.status === 'Completed';
 
-    const statusLabel = isUpcoming
-      ? 'Sắp tới'
+    const statusLabel = isPending
+      ? 'Chờ duyệt ⏳'
+      : isUpcoming
+      ? 'Đã duyệt ✓'
       : isCompleted
-      ? 'Đã hoàn thành'
+      ? 'Đã học'
       : 'Đã hủy';
 
     return (
@@ -93,7 +101,9 @@ export const MyBookingsScreen: React.FC = () => {
           <View
             style={[
               styles.statusPill,
-              isUpcoming
+              isPending
+                ? styles.statusPending
+                : isUpcoming
                 ? styles.statusUpcoming
                 : isCompleted
                 ? styles.statusCompleted
@@ -103,7 +113,9 @@ export const MyBookingsScreen: React.FC = () => {
             <Text
               style={[
                 styles.statusText,
-                isUpcoming
+                isPending
+                  ? styles.statusTextPending
+                  : isUpcoming
                   ? styles.statusTextUpcoming
                   : isCompleted
                   ? styles.statusTextCompleted
@@ -135,7 +147,7 @@ export const MyBookingsScreen: React.FC = () => {
             <Text style={styles.passCode}>{item.checkInCode}</Text>
           </View>
 
-          {isUpcoming && (
+          {(isUpcoming || isPending) && (
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => handleCancelBooking(item)}
@@ -158,7 +170,12 @@ export const MyBookingsScreen: React.FC = () => {
         <View style={styles.segmentedControl}>
           {STATUS_TABS.map((tab) => {
             const isActive = activeTab === tab.key;
-            const count = bookings?.filter((b) => b.status === tab.key).length ?? 0;
+            const count = (bookings ?? []).filter((b) => {
+              if (tab.key === 'Upcoming') {
+                return b.status === 'Upcoming' || b.status === 'Pending';
+              }
+              return b.status === tab.key;
+            }).length;
             return (
               <TouchableOpacity
                 key={tab.key}
@@ -319,6 +336,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
+  statusPending: {
+    backgroundColor: '#FEF3C7',
+  },
   statusUpcoming: {
     backgroundColor: Colors.availableLight,
   },
@@ -331,6 +351,9 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  statusTextPending: {
+    color: '#B45309',
   },
   statusTextUpcoming: {
     color: Colors.availableText,

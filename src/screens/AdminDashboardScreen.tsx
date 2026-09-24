@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   useAddRoomMutation,
   useAdminBookingsQuery,
+  useApproveBookingMutation,
   useCancelBookingMutation,
   useDeleteRoomMutation,
   useDeleteUserMutation,
@@ -97,6 +98,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const updateRoomMutation = useUpdateRoomMutation();
   const deleteRoomMutation = useDeleteRoomMutation();
   const cancelBookingMutation = useCancelBookingMutation();
+  const approveBookingMutation = useApproveBookingMutation();
   const updateUserRoleMutation = useUpdateUserRoleMutation();
   const deleteUserMutation = useDeleteUserMutation();
 
@@ -153,6 +155,29 @@ export const AdminDashboardScreen: React.FC = () => {
           text: 'Xóa ngay',
           style: 'destructive',
           onPress: () => deleteRoomMutation.mutate(room.id),
+        },
+      ]
+    );
+  };
+
+  const handleApproveBooking = (bookingId: string, studentName: string, roomName: string) => {
+    Alert.alert(
+      'Phê duyệt lịch đặt phòng',
+      `Bạn có muốn ĐỒNG Ý duyệt lịch đặt phòng "${roomName}" cho sinh viên ${studentName} không?`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đồng ý duyệt',
+          style: 'default',
+          onPress: async () => {
+            try {
+              await approveBookingMutation.mutateAsync(bookingId);
+              Alert.alert('Thành công', `Đã phê duyệt lịch đặt của sinh viên ${studentName}!`);
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : 'Không thể phê duyệt lịch.';
+              Alert.alert('Lỗi', msg);
+            }
+          },
         },
       ]
     );
@@ -306,10 +331,16 @@ export const AdminDashboardScreen: React.FC = () => {
           <Text style={styles.statLabel}>Tổng phòng</Text>
         </View>
         <View style={styles.statBox}>
+          <Text style={[styles.statNum, { color: '#D97706' }]}>
+            {allBookings?.filter((b) => b.status === 'Pending').length ?? 0}
+          </Text>
+          <Text style={styles.statLabel}>Chờ duyệt</Text>
+        </View>
+        <View style={styles.statBox}>
           <Text style={[styles.statNum, { color: Colors.primary }]}>
             {allBookings?.filter((b) => b.status === 'Upcoming').length ?? 0}
           </Text>
-          <Text style={styles.statLabel}>Lịch sắp tới</Text>
+          <Text style={styles.statLabel}>Đã duyệt</Text>
         </View>
         <View style={styles.statBox}>
           <Text style={[styles.statNum, { color: '#8B5CF6' }]}>
@@ -513,7 +544,9 @@ export const AdminDashboardScreen: React.FC = () => {
                     <View
                       style={[
                         styles.statusPill,
-                        item.status === 'Upcoming'
+                        item.status === 'Pending'
+                          ? styles.statusPending
+                          : item.status === 'Upcoming'
                           ? styles.statusUpcoming
                           : item.status === 'Completed'
                           ? styles.statusCompleted
@@ -523,15 +556,19 @@ export const AdminDashboardScreen: React.FC = () => {
                       <Text
                         style={[
                           styles.statusPillText,
-                          item.status === 'Upcoming'
+                          item.status === 'Pending'
+                            ? styles.statusPillTextPending
+                            : item.status === 'Upcoming'
                             ? styles.statusPillTextUpcoming
                             : item.status === 'Completed'
                             ? styles.statusPillTextCompleted
                             : styles.statusPillTextCancelled,
                         ]}
                       >
-                        {item.status === 'Upcoming'
-                          ? 'Sắp tới'
+                        {item.status === 'Pending'
+                          ? 'Chờ duyệt'
+                          : item.status === 'Upcoming'
+                          ? 'Đã duyệt'
                           : item.status === 'Completed'
                           ? 'Hoàn thành'
                           : 'Đã hủy'}
@@ -541,14 +578,43 @@ export const AdminDashboardScreen: React.FC = () => {
 
                   <View style={styles.bookingBottom}>
                     <Text style={styles.bookingPass}>Mã vé: {item.checkInCode}</Text>
-                    {item.status === 'Upcoming' && (
-                      <TouchableOpacity
-                        style={styles.adminCancelBtn}
-                        onPress={() => handleAdminCancelBooking(item.id, item.studentName)}
-                      >
-                        <Text style={styles.adminCancelText}>Hủy lịch này</Text>
-                      </TouchableOpacity>
-                    )}
+                    <View style={styles.adminBookingBtnGroup}>
+                      {item.status === 'Pending' && (
+                        <>
+                          <TouchableOpacity
+                            style={styles.adminApproveBtn}
+                            onPress={() => handleApproveBooking(item.id, item.studentName, item.roomName)}
+                            disabled={approveBookingMutation.isPending}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+                            <Text style={styles.adminApproveText}>Đồng ý duyệt</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.adminCancelBtn}
+                            onPress={() => handleAdminCancelBooking(item.id, item.studentName)}
+                            disabled={cancelBookingMutation.isPending}
+                            activeOpacity={0.8}
+                          >
+                            <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
+                            <Text style={styles.adminCancelText}>Từ chối</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+
+                      {item.status === 'Upcoming' && (
+                        <TouchableOpacity
+                          style={styles.adminCancelBtn}
+                          onPress={() => handleAdminCancelBooking(item.id, item.studentName)}
+                          disabled={cancelBookingMutation.isPending}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="trash-outline" size={13} color="#DC2626" />
+                          <Text style={styles.adminCancelText}>Hủy lịch này</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </Animated.View>
               )}
@@ -1283,6 +1349,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignSelf: 'flex-start',
   },
+  statusPending: {
+    backgroundColor: '#FEF3C7',
+  },
   statusUpcoming: {
     backgroundColor: Colors.availableLight,
   },
@@ -1295,6 +1364,9 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  statusPillTextPending: {
+    color: '#B45309',
   },
   statusPillTextUpcoming: {
     color: Colors.availableText,
@@ -1319,10 +1391,32 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
+  adminBookingBtnGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  adminApproveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#059669',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  adminApproveText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   adminCancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: '#FEF2F2',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 6,
   },
   adminCancelText: {

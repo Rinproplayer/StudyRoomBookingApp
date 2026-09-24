@@ -4,12 +4,12 @@ import { getTodayDateString } from './src/api/mockData';
 async function runConflictTests() {
   console.log('--- Starting Conflict Prevention & Booking Tests ---');
 
-  const today = getTodayDateString(0);
+  const testDate = getTodayDateString(1); // Lịch đặt ngày mai (đảm bảo khung giờ luôn trong tương lai)
   const roomId = 'room-1'; // Lab A3-101
   const slotId = '08:00-09:30';
 
-  console.log('1. Checking initial slots for room-1 on date:', today);
-  const initialSlots = await bookingService.getRoomSlotsForDate(roomId, today);
+  console.log('1. Checking initial slots for room-1 on date:', testDate);
+  const initialSlots = await bookingService.getRoomSlotsForDate(roomId, testDate);
   const targetSlot = initialSlots.find((s) => s.id === slotId);
   console.log(`Slot ${slotId} isBooked:`, targetSlot?.isBooked);
   if (targetSlot?.isBooked) {
@@ -19,7 +19,7 @@ async function runConflictTests() {
   console.log('\n2. Student 1 books Lab A3-101 for 08:00-09:30...');
   const booking1 = await bookingService.createBooking({
     roomId,
-    date: today,
+    date: testDate,
     slotId,
     studentId: 'STU-101',
     studentName: 'Student One',
@@ -28,7 +28,7 @@ async function runConflictTests() {
   console.log('Successfully booked! Booking ID:', booking1.id, 'Check-in Code:', booking1.checkInCode);
 
   console.log('\n3. Verifying slot status in slot query after booking...');
-  const updatedSlots = await bookingService.getRoomSlotsForDate(roomId, today);
+  const updatedSlots = await bookingService.getRoomSlotsForDate(roomId, testDate);
   const bookedSlot = updatedSlots.find((s) => s.id === slotId);
   console.log(`Slot ${slotId} isBooked:`, bookedSlot?.isBooked);
   if (!bookedSlot?.isBooked) {
@@ -39,7 +39,7 @@ async function runConflictTests() {
   try {
     await bookingService.createBooking({
       roomId,
-      date: today,
+      date: testDate,
       slotId,
       studentId: 'STU-202',
       studentName: 'Student Two',
@@ -54,7 +54,7 @@ async function runConflictTests() {
   try {
     await bookingService.createBooking({
       roomId: 'room-3', // Tech Lab 402
-      date: today,
+      date: testDate,
       slotId,
       studentId: 'STU-101',
       studentName: 'Student One',
@@ -70,7 +70,7 @@ async function runConflictTests() {
   console.log('Booking cancelled successfully.');
 
   console.log('\n7. Verifying slot is freed up in slot query after cancellation...');
-  const freedSlots = await bookingService.getRoomSlotsForDate(roomId, today);
+  const freedSlots = await bookingService.getRoomSlotsForDate(roomId, testDate);
   const freedSlot = freedSlots.find((s) => s.id === slotId);
   console.log(`Slot ${slotId} isBooked:`, freedSlot?.isBooked);
   if (freedSlot?.isBooked) {
@@ -80,7 +80,7 @@ async function runConflictTests() {
   console.log('\n8. Student 2 can now successfully book the freed slot...');
   const booking2 = await bookingService.createBooking({
     roomId,
-    date: today,
+    date: testDate,
     slotId,
     studentId: 'STU-202',
     studentName: 'Student Two',

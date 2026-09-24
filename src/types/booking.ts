@@ -6,7 +6,7 @@ export interface TimeSlot {
   bookedByStudentId?: string;
 }
 
-export type BookingStatus = 'Upcoming' | 'Completed' | 'Cancelled';
+export type BookingStatus = 'Pending' | 'Upcoming' | 'Completed' | 'Cancelled';
 
 export interface Booking {
   id: string;

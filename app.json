@@ -27,6 +27,17 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "7665ecc1-d85a-4651-8056-d874ec85ebaf"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7665ecc1-d85a-4651-8056-d874ec85ebaf"
+    }
   }
 }

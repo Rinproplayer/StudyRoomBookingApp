@@ -44,6 +44,18 @@ async function ensureSeedRooms() {
   }
 }
 
+// Kiểm tra xem lịch đặt đã kết thúc trong quá khứ chưa
+export function isBookingPast(dateStr: string, endTimeStr: string): boolean {
+  try {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const [hours, minutes] = endTimeStr.split(':').map(Number);
+    const bookingEndTime = new Date(year, month - 1, day, hours, minutes);
+    return bookingEndTime.getTime() <= Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export const firestoreService = {
   // Lấy danh sách phòng từ Firestore & lọc theo tiêu chí
   getRooms: async (filters?: Partial<RoomFilterState>): Promise<Room[]> => {
@@ -116,12 +128,27 @@ export const firestoreService = {
     const q = query(
       collection(db, BOOKINGS_COLLECTION),
       where('roomId', '==', roomId),
-      where('date', '==', date),
-      where('status', '==', 'Upcoming')
+      where('date', '==', date)
     );
 
     const snap = await getDocs(q);
-    const activeBookings = snap.docs.map((d) => d.data() as Booking);
+    const activeBookings = snap.docs
+      .map((d) => {
+        const data = d.data() as Booking;
+        let status = data.status;
+        if (status !== 'Cancelled' && isBookingPast(data.date, data.endTime)) {
+          status = 'Completed';
+          if (data.status !== 'Completed') {
+            updateDoc(doc(db, BOOKINGS_COLLECTION, d.id), { status: 'Completed' }).catch(() => {});
+          }
+        }
+        return { ...data, id: d.id, status };
+      })
+      .filter(
+        (b) =>
+          (b.status === 'Upcoming' || b.status === 'Pending') &&
+          !isBookingPast(b.date, b.endTime)
+      );
 
     return STANDARD_TIME_SLOTS.map((slot) => {
       const match = activeBookings.find((b) => b.slotId === slot.id);
@@ -137,16 +164,22 @@ export const firestoreService = {
 
   // Đặt phòng với kiểm tra xung đột trực tiếp trên Firestore (Conflict Prevention Engine)
   createBooking: async (payload: CreateBookingPayload): Promise<Booking> => {
-    // 1. Kiểm tra xem phòng và slot này đã có ai đặt chưa
+    // 1. Kiểm tra xem phòng và slot này đã có ai đặt chưa (Pending hoặc Upcoming)
     const roomConflictQuery = query(
       collection(db, BOOKINGS_COLLECTION),
       where('roomId', '==', payload.roomId),
       where('date', '==', payload.date),
-      where('slotId', '==', payload.slotId),
-      where('status', '==', 'Upcoming')
+      where('slotId', '==', payload.slotId)
     );
     const roomConflictSnap = await getDocs(roomConflictQuery);
-    if (!roomConflictSnap.empty) {
+    const hasRoomConflict = roomConflictSnap.docs.some((d) => {
+      const b = d.data() as Booking;
+      return (
+        (b.status === 'Upcoming' || b.status === 'Pending') &&
+        !isBookingPast(b.date, b.endTime)
+      );
+    });
+    if (hasRoomConflict) {
       throw new Error(
         'Khung giờ này vừa được người khác đặt trên hệ thống Cloud. Vui lòng chọn khung giờ khác!'
       );
@@ -157,11 +190,17 @@ export const firestoreService = {
       collection(db, BOOKINGS_COLLECTION),
       where('studentId', '==', payload.studentId),
       where('date', '==', payload.date),
-      where('slotId', '==', payload.slotId),
-      where('status', '==', 'Upcoming')
+      where('slotId', '==', payload.slotId)
     );
     const studentConflictSnap = await getDocs(studentConflictQuery);
-    if (!studentConflictSnap.empty) {
+    const hasStudentConflict = studentConflictSnap.docs.some((d) => {
+      const b = d.data() as Booking;
+      return (
+        (b.status === 'Upcoming' || b.status === 'Pending') &&
+        !isBookingPast(b.date, b.endTime)
+      );
+    });
+    if (hasStudentConflict) {
       throw new Error(
         'Bạn đã có một lịch đặt phòng khác trong cùng khung giờ này. Không thể đặt trùng giờ!'
       );
@@ -192,7 +231,7 @@ export const firestoreService = {
       studentId: payload.studentId,
       studentName: payload.studentName,
       purpose: payload.purpose || 'Thảo luận nhóm & Tự học',
-      status: 'Upcoming',
+      status: 'Pending', // Ban đầu ở trạng thái Chờ Quản trị viên duyệt
       createdAt: new Date().toISOString(),
       checkInCode: `SRB-${randomPin}`,
     };
@@ -214,10 +253,22 @@ export const firestoreService = {
     }
 
     const snap = await getDocs(q);
-    const list = snap.docs.map((d) => ({
-      ...(d.data() as Booking),
-      id: d.id,
-    }));
+    const list = snap.docs.map((d) => {
+      const data = d.data() as Booking;
+      let status = data.status;
+      // Tự động chuyển các lịch đã quá giờ sang Hoàn thành (Đã học)
+      if (status !== 'Cancelled' && isBookingPast(data.date, data.endTime)) {
+        status = 'Completed';
+        if (data.status !== 'Completed') {
+          updateDoc(doc(db, BOOKINGS_COLLECTION, d.id), { status: 'Completed' }).catch(() => {});
+        }
+      }
+      return {
+        ...data,
+        id: d.id,
+        status,
+      };
+    });
 
     // Sắp xếp lịch mới nhất lên đầu
     return list.sort(
@@ -232,13 +283,31 @@ export const firestoreService = {
     return true;
   },
 
+  // Admin: Phê duyệt (đồng ý) lịch đặt phòng
+  approveBooking: async (bookingId: string): Promise<boolean> => {
+    const bookingRef = doc(db, BOOKINGS_COLLECTION, bookingId);
+    await updateDoc(bookingRef, { status: 'Upcoming' });
+    return true;
+  },
+
   // Admin: Lấy toàn bộ lịch đặt phòng trên toàn trường
   getAllBookingsAdmin: async (): Promise<Booking[]> => {
     const snap = await getDocs(collection(db, BOOKINGS_COLLECTION));
-    const list = snap.docs.map((d) => ({
-      ...(d.data() as Booking),
-      id: d.id,
-    }));
+    const list = snap.docs.map((d) => {
+      const data = d.data() as Booking;
+      let status = data.status;
+      if (status !== 'Cancelled' && isBookingPast(data.date, data.endTime)) {
+        status = 'Completed';
+        if (data.status !== 'Completed') {
+          updateDoc(doc(db, BOOKINGS_COLLECTION, d.id), { status: 'Completed' }).catch(() => {});
+        }
+      }
+      return {
+        ...data,
+        id: d.id,
+        status,
+      };
+    });
     return list.sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
