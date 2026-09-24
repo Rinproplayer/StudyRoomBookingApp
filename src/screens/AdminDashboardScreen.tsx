@@ -22,6 +22,7 @@ import {
   useAdminBookingsQuery,
   useApproveBookingMutation,
   useCancelBookingMutation,
+  useDeleteBookingMutation,
   useDeleteRoomMutation,
   useDeleteUserMutation,
   useRoomsQuery,
@@ -99,6 +100,7 @@ export const AdminDashboardScreen: React.FC = () => {
   const deleteRoomMutation = useDeleteRoomMutation();
   const cancelBookingMutation = useCancelBookingMutation();
   const approveBookingMutation = useApproveBookingMutation();
+  const deleteBookingMutation = useDeleteBookingMutation();
   const updateUserRoleMutation = useUpdateUserRoleMutation();
   const deleteUserMutation = useDeleteUserMutation();
 
@@ -193,6 +195,29 @@ export const AdminDashboardScreen: React.FC = () => {
           text: 'Đồng ý hủy',
           style: 'destructive',
           onPress: () => cancelBookingMutation.mutate(bookingId),
+        },
+      ]
+    );
+  };
+
+  const handleDeleteBooking = (bookingId: string, roomName: string, studentName: string) => {
+    Alert.alert(
+      'Xóa vĩnh viễn lịch đặt',
+      `Bạn có chắc chắn muốn xóa vĩnh viễn lịch đặt "${roomName}" của sinh viên ${studentName} khỏi cơ sở dữ liệu? Hành động này không thể hoàn tác.`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa ngay',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBookingMutation.mutateAsync(bookingId);
+              Alert.alert('Thành công', 'Đã xóa lịch đặt phòng khỏi hệ thống!');
+            } catch (err: unknown) {
+              const msg = err instanceof Error ? err.message : 'Không thể xóa lịch đặt.';
+              Alert.alert('Lỗi', msg);
+            }
+          },
         },
       ]
     );
@@ -587,8 +612,8 @@ export const AdminDashboardScreen: React.FC = () => {
                             disabled={approveBookingMutation.isPending}
                             activeOpacity={0.8}
                           >
-                            <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                            <Text style={styles.adminApproveText}>Đồng ý duyệt</Text>
+                            <Ionicons name="checkmark-circle" size={13} color="#FFFFFF" />
+                            <Text style={styles.adminApproveText}>Duyệt</Text>
                           </TouchableOpacity>
 
                           <TouchableOpacity
@@ -610,10 +635,21 @@ export const AdminDashboardScreen: React.FC = () => {
                           disabled={cancelBookingMutation.isPending}
                           activeOpacity={0.8}
                         >
-                          <Ionicons name="trash-outline" size={13} color="#DC2626" />
-                          <Text style={styles.adminCancelText}>Hủy lịch này</Text>
+                          <Ionicons name="close-circle-outline" size={13} color="#DC2626" />
+                          <Text style={styles.adminCancelText}>Hủy lịch</Text>
                         </TouchableOpacity>
                       )}
+
+                      {/* Nút Xóa: Luôn hiển thị để Admin xóa bớt các lịch đã xong, đã hủy hoặc không cần thiết */}
+                      <TouchableOpacity
+                        style={styles.adminDeleteBookingBtn}
+                        onPress={() => handleDeleteBooking(item.id, item.roomName, item.studentName)}
+                        disabled={deleteBookingMutation.isPending}
+                        activeOpacity={0.8}
+                      >
+                        <Ionicons name="trash-outline" size={13} color="#DC2626" />
+                        <Text style={styles.adminDeleteBookingText}>Xóa</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </Animated.View>
@@ -1422,6 +1458,22 @@ const styles = StyleSheet.create({
   adminCancelText: {
     fontSize: 11,
     fontWeight: '600',
+    color: '#DC2626',
+  },
+  adminDeleteBookingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  adminDeleteBookingText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: '#DC2626',
   },
   modalOverlay: {

@@ -290,6 +290,13 @@ export const firestoreService = {
     return true;
   },
 
+  // Admin: Xóa vĩnh viễn lịch đặt phòng khỏi Firestore
+  deleteBookingAdmin: async (bookingId: string): Promise<boolean> => {
+    const bookingRef = doc(db, BOOKINGS_COLLECTION, bookingId);
+    await deleteDoc(bookingRef);
+    return true;
+  },
+
   // Admin: Lấy toàn bộ lịch đặt phòng trên toàn trường
   getAllBookingsAdmin: async (): Promise<Booking[]> => {
     const snap = await getDocs(collection(db, BOOKINGS_COLLECTION));

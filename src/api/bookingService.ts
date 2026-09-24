@@ -145,4 +145,10 @@ export const bookingService = {
 
     return true;
   },
+
+  deleteBookingAdmin: async (bookingId: string): Promise<boolean> => {
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    bookingsDatabase = bookingsDatabase.filter((b) => b.id !== bookingId);
+    return true;
+  },
 };

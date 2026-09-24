@@ -93,6 +93,20 @@ export const useApproveBookingMutation = () => {
   });
 };
 
+export const useDeleteBookingMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bookingId: string) => firestoreService.deleteBookingAdmin(bookingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['slots'] });
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.adminBookings });
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+    },
+  });
+};
+
 // Admin Mutations
 export const useAddRoomMutation = () => {
   const queryClient = useQueryClient();
