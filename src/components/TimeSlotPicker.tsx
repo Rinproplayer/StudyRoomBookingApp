@@ -8,6 +8,11 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  FadeInRight,
+  FadeInUp,
+} from 'react-native-reanimated';
 import { TimeSlot } from '../types/booking';
 import { getTodayDateString } from '../api/mockData';
 import { Colors } from '../theme/colors';
@@ -65,25 +70,29 @@ export const TimeSlotPicker: React.FC<Props> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.dateStrip}
       >
-        {dateOptions.map((item) => {
+        {dateOptions.map((item, dIdx) => {
           const isSelected = selectedDate === item.dateStr;
           return (
-            <TouchableOpacity
+            <Animated.View
               key={item.dateStr}
-              style={[styles.dateCard, isSelected && styles.dateCardSelected]}
-              onPress={() => onSelectDate(item.dateStr)}
-              activeOpacity={0.7}
+              entering={FadeInRight.duration(280).delay(dIdx * 35)}
             >
-              <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>
-                {item.dayLabel}
-              </Text>
-              <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
-                {item.dayNumber}
-              </Text>
-              <Text style={[styles.monthLabel, isSelected && styles.monthLabelSelected]}>
-                {item.monthName}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dateCard, isSelected && styles.dateCardSelected]}
+                onPress={() => onSelectDate(item.dateStr)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.dayLabel, isSelected && styles.dayLabelSelected]}>
+                  {item.dayLabel}
+                </Text>
+                <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
+                  {item.dayNumber}
+                </Text>
+                <Text style={[styles.monthLabel, isSelected && styles.monthLabelSelected]}>
+                  {item.monthName}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           );
         })}
       </ScrollView>
@@ -105,10 +114,10 @@ export const TimeSlotPicker: React.FC<Props> = ({
 
       {/* Conflict error warning banner */}
       {conflictError ? (
-        <View style={styles.conflictBanner}>
+        <Animated.View entering={FadeInUp.springify().damping(12)} style={styles.conflictBanner}>
           <Ionicons name="warning" size={18} color="#DC2626" />
           <Text style={styles.conflictBannerText}>{conflictError}</Text>
-        </View>
+        </Animated.View>
       ) : null}
 
       {/* Slots Grid */}
@@ -119,63 +128,68 @@ export const TimeSlotPicker: React.FC<Props> = ({
         </View>
       ) : (
         <View style={styles.slotsGrid}>
-          {slots?.map((slot) => {
+          {slots?.map((slot, index) => {
             const isBooked = slot.isBooked;
             const isSelected = selectedSlotId === slot.id;
 
             return (
-              <TouchableOpacity
+              <Animated.View
                 key={slot.id}
-                disabled={isBooked}
-                style={[
-                  styles.slotCard,
-                  isBooked && styles.slotCardBooked,
-                  isSelected && styles.slotCardSelected,
-                ]}
-                onPress={() => onSelectSlot(slot)}
-                activeOpacity={0.7}
+                entering={FadeInDown.duration(300).delay(index * 25).springify()}
+                style={{ flexBasis: '48%', flexGrow: 1 }}
               >
-                <View style={styles.slotTop}>
-                  <Ionicons
-                    name={
-                      isBooked
-                        ? 'close-circle'
-                        : isSelected
-                        ? 'checkmark-circle'
-                        : 'time-outline'
-                    }
-                    size={16}
-                    color={
-                      isBooked
-                        ? Colors.occupied
-                        : isSelected
-                        ? '#FFFFFF'
-                        : Colors.textSecondary
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.slotTime,
-                      isBooked && styles.slotTimeBooked,
-                      isSelected && styles.slotTimeSelected,
-                    ]}
-                  >
-                    {slot.startTime} - {slot.endTime}
-                  </Text>
-                </View>
+                <TouchableOpacity
+                  disabled={isBooked}
+                  style={[
+                    styles.slotCard,
+                    isBooked && styles.slotCardBooked,
+                    isSelected && styles.slotCardSelected,
+                  ]}
+                  onPress={() => onSelectSlot(slot)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.slotTop}>
+                    <Ionicons
+                      name={
+                        isBooked
+                          ? 'close-circle'
+                          : isSelected
+                          ? 'checkmark-circle'
+                          : 'time-outline'
+                      }
+                      size={16}
+                      color={
+                        isBooked
+                          ? Colors.occupied
+                          : isSelected
+                          ? '#FFFFFF'
+                          : Colors.textSecondary
+                      }
+                    />
+                    <Text
+                      style={[
+                        styles.slotTime,
+                        isBooked && styles.slotTimeBooked,
+                        isSelected && styles.slotTimeSelected,
+                      ]}
+                    >
+                      {slot.startTime} - {slot.endTime}
+                    </Text>
+                  </View>
 
-                <View style={styles.slotBadgeWrap}>
-                  <Text
-                    style={[
-                      styles.slotBadgeText,
-                      isBooked && styles.slotBadgeTextBooked,
-                      isSelected && styles.slotBadgeTextSelected,
-                    ]}
-                  >
-                    {isBooked ? 'Đã kín lịch' : isSelected ? 'Đang chọn' : 'Còn trống'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                  <View style={styles.slotBadgeWrap}>
+                    <Text
+                      style={[
+                        styles.slotBadgeText,
+                        isBooked && styles.slotBadgeTextBooked,
+                        isSelected && styles.slotBadgeTextSelected,
+                      ]}
+                    >
+                      {isBooked ? 'Đã kín lịch' : isSelected ? 'Đang chọn' : 'Còn trống'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </Animated.View>
             );
           })}
         </View>

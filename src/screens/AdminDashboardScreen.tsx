@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import {
   useAddRoomMutation,
@@ -299,7 +300,7 @@ export const AdminDashboardScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       {/* Overview Stats Bar */}
-      <View style={styles.statsCard}>
+      <Animated.View entering={FadeInDown.duration(480).springify()} style={styles.statsCard}>
         <View style={styles.statBox}>
           <Text style={styles.statNum}>{rooms?.length ?? 0}</Text>
           <Text style={styles.statLabel}>Tổng phòng</Text>
@@ -316,7 +317,7 @@ export const AdminDashboardScreen: React.FC = () => {
           </Text>
           <Text style={styles.statLabel}>Người dùng</Text>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Admin Tab Switcher */}
       <View style={styles.tabSwitcher}>
@@ -389,8 +390,11 @@ export const AdminDashboardScreen: React.FC = () => {
               data={rooms}
               keyExtractor={(r) => r.id}
               contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-              renderItem={({ item }) => (
-                <View style={styles.roomItemCard}>
+              renderItem={({ item, index }) => (
+                <Animated.View
+                  entering={FadeInDown.duration(340).delay(Math.min(index * 45, 250)).springify()}
+                  style={styles.roomItemCard}
+                >
                   <View style={styles.roomHeader}>
                     <Image source={{ uri: item.photoUrl }} style={styles.roomImg} />
                     <View style={styles.roomDetails}>
@@ -474,7 +478,7 @@ export const AdminDashboardScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   </View>
-                </View>
+                </Animated.View>
               )}
             />
           )}
@@ -491,8 +495,11 @@ export const AdminDashboardScreen: React.FC = () => {
               data={allBookings}
               keyExtractor={(b) => b.id}
               contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-              renderItem={({ item }) => (
-                <View style={styles.bookingItemCard}>
+              renderItem={({ item, index }) => (
+                <Animated.View
+                  entering={FadeInDown.duration(340).delay(Math.min(index * 45, 250)).springify()}
+                  style={styles.bookingItemCard}
+                >
                   <View style={styles.bookingTop}>
                     <View style={styles.bookingInfo}>
                       <Text style={styles.bookingRoom}>{item.roomName}</Text>
@@ -543,7 +550,7 @@ export const AdminDashboardScreen: React.FC = () => {
                       </TouchableOpacity>
                     )}
                   </View>
-                </View>
+                </Animated.View>
               )}
             />
           )}
@@ -632,12 +639,15 @@ export const AdminDashboardScreen: React.FC = () => {
                   </Text>
                 </View>
               }
-              renderItem={({ item }) => {
+              renderItem={({ item, index }) => {
                 const isMe = item.id === currentUser?.id;
                 const isAdmin = item.role === 'admin';
 
                 return (
-                  <View style={styles.userCard}>
+                  <Animated.View
+                    entering={FadeInDown.duration(340).delay(Math.min(index * 45, 250)).springify()}
+                    style={styles.userCard}
+                  >
                     <View style={styles.userCardTop}>
                       <Image source={{ uri: item.avatarUrl }} style={styles.userAvatar} />
                       <View style={styles.userInfo}>
@@ -717,7 +727,7 @@ export const AdminDashboardScreen: React.FC = () => {
                         />
                       </TouchableOpacity>
                     </View>
-                  </View>
+                  </Animated.View>
                 );
               }}
             />

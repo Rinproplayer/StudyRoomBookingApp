@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { authService } from '../services/authService';
@@ -110,7 +111,7 @@ export const LoginScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* App Logo & Header */}
-        <View style={styles.header}>
+        <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.header}>
           <View style={styles.logoCircle}>
             <Ionicons name="school" size={44} color={Colors.primary} />
           </View>
@@ -118,10 +119,10 @@ export const LoginScreen: React.FC = () => {
           <Text style={styles.appSubtitle}>
             Hệ thống đặt phòng tự học & lab nghiên cứu Campus
           </Text>
-        </View>
+        </Animated.View>
 
         {/* Input Form */}
-        <View style={styles.formCard}>
+        <Animated.View entering={FadeInUp.duration(650).delay(150).springify()} style={styles.formCard}>
           <Text style={styles.formTitle}>Đăng Nhập</Text>
 
           {/* Account */}
@@ -206,7 +207,7 @@ export const LoginScreen: React.FC = () => {
               <Text style={styles.registerLink}>Đăng ký mới</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Cấu hình Google Web Client ID Modal (Chỉ hiển thị khi chưa cấu hình Web Client ID) */}

@@ -1,22 +1,49 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { Room } from '../types/room';
 import { StatusBadge } from './StatusBadge';
 import { Colors } from '../theme/colors';
 
 interface Props {
   room: Room;
+  index?: number;
   onPress: (room: Room) => void;
 }
 
-export const RoomCard: React.FC<Props> = React.memo(({ room, onPress }) => {
+export const RoomCard: React.FC<Props> = React.memo(({ room, index = 0, onPress }) => {
+  const scale = useSharedValue(1);
+
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.975, { damping: 15, stiffness: 350 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 350 });
+  };
+
   return (
-    <TouchableOpacity
-      activeOpacity={0.88}
-      style={styles.card}
-      onPress={() => onPress(room)}
+    <Animated.View
+      entering={FadeInDown.duration(380).delay(Math.min(index * 60, 360)).springify()}
+      style={animatedCardStyle}
     >
+      <TouchableOpacity
+        activeOpacity={0.92}
+        style={styles.card}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={() => onPress(room)}
+      >
       {/* Room Photo */}
       <View style={styles.imageContainer}>
         <Image source={{ uri: room.photoUrl }} style={styles.image} resizeMode="cover" />
@@ -94,7 +121,8 @@ export const RoomCard: React.FC<Props> = React.memo(({ room, onPress }) => {
         </View>
       </View>
     </TouchableOpacity>
-  );
+  </Animated.View>
+);
 });
 
 const styles = StyleSheet.create({

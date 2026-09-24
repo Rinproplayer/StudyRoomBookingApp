@@ -88,12 +88,21 @@ Tự động xuất hiện Tab riêng **Quản trị (Admin)** khi đăng nhập
 
 ---
 
+### 6. ✨ Hiệu Ứng Chuyển Động & Tương Tác Mượt Mà (React Native Reanimated)
+- **Staggered Card Entrances (`FadeInDown.springify()`)**: Danh sách phòng học, lịch đặt cá nhân, và các danh sách trong Admin Dashboard xuất hiện so le với hiệu ứng vật lý lò xo mượt mà, tự nhiên.
+- **Micro-interaction Chạm Đàn Hồi (`withSpring`)**: Thẻ phòng `RoomCard` phản hồi lực nhấn tức thì (`onPressIn` thu nhẹ 0.98x, `onPressOut` nảy lại 1.0x).
+- **Huy hiệu Phát sáng Nhịp đập (`useSharedValue` + `withRepeat`)**: Huy hiệu phòng "Còn chỗ" có chấm xanh phát sáng co giãn liên tục, giúp sinh viên nhận biết trạng thái phòng ngay lập tức.
+- **Hộp thoại Thành công Sinh động (`ZoomIn.springify()`)**: Modal xác nhận đặt phòng kèm vé QR nảy vào màn hình với icon tích xanh pop-in và hiệu ứng trượt mượt mà.
+
+---
+
 ## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
 
 | Thành phần | Công nghệ / Thư viện | Phiên bản | Ghi chú |
 | :--- | :--- | :--- | :--- |
 | **Framework** | React Native + Expo (Managed Workflow) | SDK 57 | Hỗ trợ đa nền tảng iOS, Android, Web |
 | **Language** | TypeScript | v5.x / Strict: true | Đạt 0 lỗi biên dịch kiểu dữ liệu |
+| **Animations** | `react-native-reanimated` | v4.5.1 | Staggered entrance, Spring press micro-interactions & pulsing badges |
 | **Navigation** | React Navigation 7 | v7.x | Stack Navigation + Bottom Tabs |
 | **Database** | Google Cloud Firestore (NoSQL) | v12.x | Realtime cloud database |
 | **Authentication** | Firebase Auth + Google OAuth 2.0 | v12.x | Email/Password + PKCE Google Sign-In |

@@ -60,8 +60,8 @@ export const BrowseRoomsScreen: React.FC = () => {
   );
 
   const renderRoomItem = useCallback(
-    ({ item }: { item: Room }) => {
-      return <RoomCard room={item} onPress={handleRoomPress} />;
+    ({ item, index }: { item: Room; index: number }) => {
+      return <RoomCard room={item} index={index} onPress={handleRoomPress} />;
     },
     [handleRoomPress]
   );

@@ -35,6 +35,7 @@
 | 9 | **60fps FlatList Feed with Room Cards** | ✅ Hoàn thành (100%) | Thẻ `RoomCard` được bọc `React.memo` triệt tiêu re-render thừa. Cấu hình FlatList tối ưu 60fps: `initialNumToRender={6}`, `maxToRenderPerBatch={8}`, `windowSize={7}`, `removeClippedSubviews={true}` cho trải nghiệm cuộn mượt mà. |
 | 10 | **Time-Slot Selector with 2-Layer Conflict Prevention Engine** | ✅ Hoàn thành (100%) | Chọn ngày đặt theo dải ngày trong tuần; Lưới khung giờ 1.5h/slot. Thuật toán **Conflict Prevention 2 lớp** trên Cloud Firestore: chống trùng phòng học và chống trùng lịch cá nhân sinh viên. Tự động mở lại slot khi hủy lịch. |
 | 11 | **My Bookings & QR Check-in Pass** | ✅ Hoàn thành (100%) | Quản lý phân loại lịch đặt theo tab: *Sắp tới*, *Đã học*, *Đã hủy*. Mỗi phiếu đặt có mã định danh duy nhất (ví dụ: `SRB-4170`) kèm mã QR để quét vào cửa phòng tự học. |
+| 12 | **Fluid Animations & Micro-interactions: React Native Reanimated** | ✅ Hoàn thành (100%) | Tích hợp `react-native-reanimated` v4.5.1 chuẩn Expo SDK 57. Hiện thực hiệu ứng xuất hiện so le (staggered `FadeInDown.springify()`), tương tác chạm lò xo đàn hồi (spring scale `withSpring`), hiệu ứng nhịp đập phát sáng (`withRepeat` pulse) trên huy hiệu trạng thái phòng, và pop-in nảy nảy (`ZoomIn.springify()`) khi xác nhận đặt phòng thành công. |
 
 ---
 
@@ -225,3 +226,4 @@ Dự án **Mini-Project 2: Study Room Booking App** đã hoàn thành xuất s�
 2. **Bảo mật & Chuẩn hóa**: Triển khai xác thực **Google OAuth 2.0 PKCE** hiện đại kết hợp Firebase Authentication. Không sử dụng dữ liệu giả mạo hay ô nhập liệu tự do.
 3. **Quản trị toàn diện**: Xây dựng trọn vẹn Bảng điều khiển Quản trị viên Campus với 3 phân hệ (Phòng học, Lịch đặt, Người dùng) có khả năng tương tác trực tiếp và đồng bộ hóa tức thì với Cloud Firestore.
 4. **Trải nghiệm người dùng (UX/UI)**: 100% Tiếng Việt thân thiện sinh viên, giao diện danh sách đạt chuẩn cuộn 60fps, hỗ trợ vé Check-in QR điện tử tiện lợi.
+5. **Chuyển động & Hoạt họa đỉnh cao**: Ứng dụng tích hợp sâu **React Native Reanimated v4**, mang lại trải nghiệm thị giác mượt mà 60fps với hiệu ứng vật lý lò xo (springify), xuất hiện so le (staggered cascade) và vi tương tác phản hồi xúc giác tự nhiên.

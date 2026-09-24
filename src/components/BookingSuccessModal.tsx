@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { Booking } from '../types/booking';
 import { Colors } from '../theme/colors';
 
@@ -20,13 +21,19 @@ export const BookingSuccessModal: React.FC<Props> = ({
   if (!booking) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
+    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+      <Animated.View entering={FadeIn.duration(200)} style={styles.overlay}>
+        <Animated.View
+          entering={ZoomIn.duration(350).springify().damping(14)}
+          style={styles.card}
+        >
           {/* Success Icon */}
-          <View style={styles.iconCircle}>
+          <Animated.View
+            entering={ZoomIn.delay(160).duration(400).springify().damping(10)}
+            style={styles.iconCircle}
+          >
             <Ionicons name="checkmark" size={32} color="#FFFFFF" />
-          </View>
+          </Animated.View>
 
           <Text style={styles.title}>Đặt Phòng Thành Công!</Text>
           <Text style={styles.subtitle}>
@@ -34,7 +41,7 @@ export const BookingSuccessModal: React.FC<Props> = ({
           </Text>
 
           {/* Booking Summary Box */}
-          <View style={styles.summaryBox}>
+          <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.summaryBox}>
             <View style={styles.summaryRow}>
               <Text style={styles.label}>Phòng học</Text>
               <Text style={styles.valueBold}>{booking.roomName}</Text>
@@ -66,10 +73,10 @@ export const BookingSuccessModal: React.FC<Props> = ({
                 <Ionicons name="qr-code-outline" size={48} color={Colors.primaryDark} />
               </View>
             </View>
-          </View>
+          </Animated.View>
 
           {/* Action Buttons */}
-          <View style={styles.buttonStack}>
+          <Animated.View entering={FadeInDown.delay(260).duration(350)} style={styles.buttonStack}>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={onGoToBookings}
@@ -85,9 +92,9 @@ export const BookingSuccessModal: React.FC<Props> = ({
             >
               <Text style={styles.secondaryButtonText}>Đóng</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 };

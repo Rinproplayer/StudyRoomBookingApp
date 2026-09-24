@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Booking, BookingStatus } from '../types/booking';
 import { useBookingsQuery, useCancelBookingMutation } from '../api/queries';
 import { useUserStore } from '../store/useUserStore';
@@ -60,7 +61,7 @@ export const MyBookingsScreen: React.FC = () => {
     );
   };
 
-  const renderBookingItem = ({ item }: { item: Booking }) => {
+  const renderBookingItem = ({ item, index }: { item: Booking; index: number }) => {
     const isUpcoming = item.status === 'Upcoming';
     const isCompleted = item.status === 'Completed';
 
@@ -71,7 +72,10 @@ export const MyBookingsScreen: React.FC = () => {
       : 'Đã hủy';
 
     return (
-      <View style={styles.card}>
+      <Animated.View
+        entering={FadeInDown.duration(360).delay(Math.min(index * 55, 300)).springify()}
+        style={styles.card}
+      >
         <View style={styles.cardHeader}>
           <Image source={{ uri: item.roomPhoto }} style={styles.thumbnail} />
           <View style={styles.headerInfo}>
@@ -143,7 +147,7 @@ export const MyBookingsScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </Animated.View>
     );
   };
 
