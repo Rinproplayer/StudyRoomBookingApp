@@ -13,9 +13,9 @@
   * **Mã sinh viên:** 23IT.B143
   * **Lớp:** Kỹ thuật Phần mềm (VKU)
   * **Email:** nguyendangcap122005@gmail.com
-  * **Vai trò:** Toàn bộ kiến trúc hệ thống, Lập trình ứng dụng Mobile (React Native + Expo SDK 57), Tích hợp Google Firebase Authentication (Email/Password & Google OAuth 2.0 PKCE), Cloud Firestore Database, React Native Reanimated v4.5.1, Quy trình phê duyệt & tự động hết hạn ca học, EAS Cloud Update — Đóng góp: 100%
+  * **Vai trò:** Toàn bộ kiến trúc hệ thống, Lập trình ứng dụng Mobile (React Native + Expo SDK 58), Tích hợp Google Firebase Authentication (Email/Password & Google OAuth 2.0 PKCE), Cloud Firestore Database, React Native Reanimated v4.7.1, Quy trình phê duyệt & tự động hết hạn ca học, EAS Cloud Update — Đóng góp: 100%
 * **💻 GitHub Repository:** [https://github.com/Rinproplayer/StudyRoomBookingApp.git](https://github.com/Rinproplayer/StudyRoomBookingApp.git)
-* **📱 Nền tảng thực nghiệm:** React Native + Expo (Managed SDK 57), iOS (iPhone qua Expo Go), Android, Web Preview
+* **📱 Nền tảng thực nghiệm:** React Native + Expo (Managed SDK 58), iOS (iPhone qua Expo Go SDK 58), Android, Web Preview
 * **☁️ Cloud Backend & Database:** Google Firebase Authentication & Cloud Firestore (`asia-southeast1` / Singapore)
 * **🌐 EAS Cloud Distribution (Kênh Main):** [https://expo.dev/accounts/rinpro123s-team/projects/study-room-booking-app/branches/main](https://expo.dev/accounts/rinpro123s-team/projects/study-room-booking-app/branches/main)
   * *EAS Project ID:* `7665ecc1-d85a-4651-8056-d874ec85ebaf`
@@ -27,7 +27,7 @@
 
 | # | Yêu Cầu Kỹ Thuật (Requirements) | Trạng Thái | Chi Tiết Hiện Thực & Mức Độ Đáp Ứng |
 |:---:|---|:---:|---|
-| 1 | **Framework & Language: React Native + Expo (Managed SDK 57) & TypeScript Strict Mode** | ✅ Hoàn thành (100%) | Khởi tạo dự án chuẩn Expo SDK 57, cấu hình `"strict": true` trong `tsconfig.json`. Toàn bộ định nghĩa kiểu dữ liệu (`Room`, `Booking`, `BookingStatus`, `TimeSlot`, `Building`, `Amenity`, `Navigation`, `UserProfile`) kiểm tra qua `npm run typecheck` đạt 0 lỗi biên dịch. |
+| 1 | **Framework & Language: React Native + Expo (Managed SDK 58) & TypeScript Strict Mode** | ✅ Hoàn thành (100%) | Khởi tạo dự án chuẩn Expo SDK 58, cấu hình `"strict": true` trong `tsconfig.json`. Toàn bộ định nghĩa kiểu dữ liệu (`Room`, `Booking`, `BookingStatus`, `TimeSlot`, `Building`, `Amenity`, `Navigation`, `UserProfile`) kiểm tra qua `npm run typecheck` đạt 0 lỗi biên dịch. |
 | 2 | **Navigation: React Navigation 7 (Stack + Tabs)** | ✅ Hoàn thành (100%) | Sử dụng bộ thư viện `@react-navigation/native` v7, `@react-navigation/bottom-tabs` v7 và `@react-navigation/native-stack` v7. Điều hướng mượt mà giữa Auth Stack (Login/Register) và Main App Tabs. Phân quyền hiển thị Tab **Quản trị (Admin)** khi đăng nhập tài khoản Quản trị viên. Căn chỉnh đệm an toàn (`paddingBottom`, Safe Area) chuẩn cho thiết bị có tai thỏ / Dynamic Island. |
 | 3 | **State Management: Zustand (Client) + TanStack Query (Server)** | ✅ Hoàn thành (100%) | Tách bạch 2 tầng trạng thái: **Zustand** quản lý trạng thái client-side (từ khóa tìm kiếm, bộ lọc chip đa tiêu chí, phiên đăng nhập, vai trò người dùng); **TanStack Query** quản lý server-side cache, optimistic updates và query invalidation kết nối trực tiếp với Cloud Firestore. |
 | 4 | **Cloud Database: Google Cloud Firestore (NoSQL)** | ✅ Hoàn thành (100%) | Kết nối cơ sở dữ liệu thời gian thực **Google Cloud Firestore** với 3 collections: `rooms` (phòng học), `bookings` (lịch đặt), `users` (tài khoản người dùng). Hỗ trợ tự động nạp sẵn 8 phòng học mẫu chuẩn Campus VKU khi khởi chạy lần đầu. |
@@ -39,7 +39,7 @@
 | 10 | **Time-Slot Selector with 2-Layer Conflict Prevention Engine** | ✅ Hoàn thành (100%) | Chọn ngày đặt theo dải ngày trong tuần; Lưới khung giờ 1.5h/slot. Thuật toán **Conflict Prevention 2 lớp** trên Cloud Firestore: chống trùng phòng học và chống trùng lịch cá nhân sinh viên. Tự động mở lại slot khi hủy lịch hoặc khi Admin từ chối lịch. |
 | 11 | **Booking Lifecycle & Approval Workflow** | ✅ Hoàn thành (100%) | Toàn bộ lượt đặt phòng (kể cả đăng nhập bằng Email hay Google) đều bắt đầu ở trạng thái `Pending` (`Chờ duyệt ⏳`). Admin xét duyệt bằng nút `[✓ Duyệt]` (chuyển sang `Upcoming`) hoặc `[✕ Từ chối]` (chuyển sang `Cancelled`). Màn hình *Lịch đặt của tôi* hiển thị phân biệt rõ ràng giữa ca học đang chờ duyệt và ca học đã được phê duyệt. |
 | 12 | **Auto-Expire Past Bookings Engine** | ✅ Hoàn thành (100%) | Hàm `isBookingPast(date, endTime)` tự động rà soát thời gian thực. Bất kỳ lịch đặt nào có thời gian kết thúc nhỏ hơn thời điểm hiện tại sẽ được tự động cập nhật sang trạng thái `Completed` (`Đã học`) và đồng bộ lên Cloud Firestore, ngăn chặn tình trạng ca học cũ bị kẹt ở mục "Sắp tới" hay "Chờ duyệt". |
-| 13 | **Fluid Animations & Micro-interactions: React Native Reanimated** | ✅ Hoàn thành (100%) | Tích hợp `react-native-reanimated` v4.5.1 chuẩn Expo SDK 57. Hiện thực hiệu ứng xuất hiện so le (staggered `FadeInDown.springify()`), tương tác chạm lò xo đàn hồi (spring scale `withSpring`), hiệu ứng nhịp đập phát sáng (`withRepeat` pulse) trên huy hiệu trạng thái phòng, và pop-in nảy nảy (`ZoomIn.springify()`) khi xác nhận đặt phòng thành công. |
+| 13 | **Fluid Animations & Micro-interactions: React Native Reanimated** | ✅ Hoàn thành (100%) | Tích hợp `react-native-reanimated` v4.7.1 chuẩn Expo SDK 58. Hiện thực hiệu ứng xuất hiện so le (staggered `FadeInDown.springify()`), tương tác chạm lò xo đàn hồi (spring scale `withSpring`), hiệu ứng nhịp đập phát sáng (`withRepeat` pulse) trên huy hiệu trạng thái phòng, và pop-in nảy nảy (`ZoomIn.springify()`) khi xác nhận đặt phòng thành công. |
 
 ---
 
@@ -174,7 +174,7 @@
 ```
 Study Room Booking App/
 ├── app.json                   # Cấu hình Expo Application (URL schemes, EAS projectId, WebBrowser plugin)
-├── package.json               # Danh mục phụ thuộc (Expo SDK 57, Firebase v12, Zustand, TanStack Query, Reanimated)
+├── package.json               # Danh mục phụ thuộc (Expo SDK 58, Firebase v12, Zustand, TanStack Query, Reanimated)
 ├── tsconfig.json              # Cấu hình TypeScript Strict Mode ("strict": true)
 ├── test-conflict.ts           # Kịch bản kiểm thử tự động thuật toán Conflict Prevention
 ├── README.md                  # Hướng dẫn dự án chi tiết (cập nhật mới nhất)
@@ -278,5 +278,5 @@ Dự án **Mini-Project 2: Study Room Booking App** đã hoàn thành xuất s�
 3. **Quy trình nghiệp vụ thực tế**: Tích hợp cỗ máy trạng thái hoàn chỉnh với quy trình phê duyệt ca học (`Pending` ➔ `Upcoming` / `Cancelled`), cơ chế tự động chuyển trạng thái ca học quá hạn (`isBookingPast` ➔ `Completed`), và nút xóa vĩnh viễn (`deleteBookingAdmin`) cho phép Admin quản trị cơ sở dữ liệu tinh gọn.
 4. **Quản trị toàn diện**: Xây dựng trọn vẹn Bảng điều khiển Quản trị viên Campus với 3 phân hệ (Phòng học, Lịch đặt, Người dùng) có khả năng tương tác trực tiếp và đồng bộ hóa tức thì với Cloud Firestore.
 5. **Trải nghiệm người dùng (UX/UI)**: 100% Tiếng Việt thân thiện sinh viên, giao diện danh sách đạt chuẩn cuộn 60fps, hỗ trợ vé Check-in QR điện tử tiện lợi.
-6. **Chuyển động & Hoạt họa đỉnh cao**: Ứng dụng tích hợp sâu **React Native Reanimated v4.5.1**, mang lại trải nghiệm thị giác mượt mà 60fps với hiệu ứng vật lý lò xo (springify), xuất hiện so le (staggered cascade) và vi tương tác phản hồi xúc giác tự nhiên.
+6. **Chuyển động & Hoạt họa đỉnh cao**: Ứng dụng tích hợp sâu **React Native Reanimated v4.7.1**, mang lại trải nghiệm thị giác mượt mà 60fps với hiệu ứng vật lý lò xo (springify), xuất hiện so le (staggered cascade) và vi tương tác phản hồi xúc giác tự nhiên.
 7. **Phân phối đám mây hiện đại**: Triển khai thành công trên hạ tầng Expo Cloud qua EAS Update, tạo mã QR vĩnh viễn cho phép thử nghiệm tức thời trên thiết bị thật từ bất kỳ vị trí địa lý nào.

@@ -202,13 +202,13 @@ export const MyBookingsScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={refetch}
+            onRefresh={() => { refetch(); }}
             tintColor={Colors.primary}
             colors={[Colors.primary]}
           />
         }
         ListEmptyComponent={
-          isLoading ? null : (
+          isLoading ? undefined : (
             <View style={styles.emptyState}>
               <Ionicons name="calendar-clear-outline" size={48} color={Colors.textMuted} />
               <Text style={styles.emptyTitle}>

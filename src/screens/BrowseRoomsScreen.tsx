@@ -137,7 +137,7 @@ export const BrowseRoomsScreen: React.FC = () => {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={refetch}
+            onRefresh={() => { refetch(); }}
             tintColor={Colors.primary}
             colors={[Colors.primary]}
           />

@@ -2,7 +2,7 @@
 
 Ứng dụng di động đặt phòng tự học, phòng lab và không gian nghiên cứu trong khuôn viên trường đại học (**Campus Study Room & Lab Reservation App**).
 
-Dự án được xây dựng theo chuẩn yêu cầu kỹ thuật cao: **React Native + Expo (Managed SDK 57)**, **TypeScript (Strict Mode)**, **React Navigation 7 (Stack + Tabs)**, **Zustand**, **TanStack Query**, kết hợp **Google Firebase Authentication & Cloud Firestore Database**, **Google OAuth 2.0 chuẩn quốc tế (PKCE Flow)**, hiệu ứng vật lý **React Native Reanimated v4.5.1**, cùng hạ tầng phân phối đám mây **EAS Cloud Update**.
+Dự án được xây dựng theo chuẩn yêu cầu kỹ thuật cao: **React Native + Expo (Managed SDK 58)**, **TypeScript (Strict Mode)**, **React Navigation 7 (Stack + Tabs)**, **Zustand**, **TanStack Query**, kết hợp **Google Firebase Authentication & Cloud Firestore Database**, **Google OAuth 2.0 chuẩn quốc tế (PKCE Flow)**, hiệu ứng vật lý **React Native Reanimated v4.7.1**, cùng hạ tầng phân phối đám mây **EAS Cloud Update**.
 
 ---
 
@@ -100,7 +100,7 @@ Tự động xuất hiện Tab riêng **Quản trị (Admin)** khi đăng nhập
 
 ---
 
-### 9. ✨ Hiệu Ứng Chuyển Động & Tương Tác Mượt Mà (React Native Reanimated v4.5.1)
+### 9. ✨ Hiệu Ứng Chuyển Động & Tương Tác Mượt Mà (React Native Reanimated v4.7.1)
 - **Staggered Card Entrances (`FadeInDown.springify()`)**: Danh sách phòng học, lịch đặt cá nhân, và các danh sách trong Admin Dashboard xuất hiện so le với hiệu ứng vật lý lò xo mượt mà, tự nhiên.
 - **Micro-interaction Chạm Đàn Hồi (`withSpring`)**: Thẻ phòng `RoomCard` phản hồi lực nhấn tức thì (`onPressIn` thu nhẹ 0.98x, `onPressOut` nảy lại 1.0x).
 - **Huy hiệu Phát sáng Nhịp đập (`useSharedValue` + `withRepeat`)**: Huy hiệu phòng "Còn chỗ" có chấm xanh phát sáng co giãn liên tục, giúp sinh viên nhận biết trạng thái phòng ngay lập tức.
@@ -120,14 +120,14 @@ Tự động xuất hiện Tab riêng **Quản trị (Admin)** khi đăng nhập
 
 | Thành phần | Công nghệ / Thư viện | Phiên bản | Ghi chú |
 | :--- | :--- | :--- | :--- |
-| **Framework** | React Native + Expo (Managed Workflow) | SDK 57 (~57.0.23) | Đa nền tảng iOS, Android, Web |
+| **Framework** | React Native + Expo (Managed Workflow) | SDK 58 (~58.0.21) | Đa nền tảng iOS, Android, Web |
 | **Language** | TypeScript | v5.x / Strict: true | 100% Type-safe, 0 lỗi biên dịch |
-| **Animations** | `react-native-reanimated` | v4.5.1 | Vật lý lò xo (springify), Staggered cascade & Pulsing |
+| **Animations** | `react-native-reanimated` | v4.7.1 | Vật lý lò xo (springify), Staggered cascade & Pulsing |
 | **Navigation** | React Navigation 7 | v7.x | Stack Navigation + Bottom Tabs |
 | **Database** | Google Cloud Firestore (NoSQL) | v12.19.0 | Đồng bộ thời gian thực (`asia-southeast1`) |
 | **Authentication** | Firebase Auth + Google OAuth 2.0 | v12.19.0 | Email/Password + PKCE RFC 7636 Flow |
-| **Security / Crypto**| `expo-crypto`, `expo-web-browser` | SDK 57 | Băm SHA-256 PKCE Code Challenge |
-| **Cloud Distribution**| EAS Update & Expo Cloud | v57.0.23 | Phân phối mã nguồn trực tiếp qua kênh `main` |
+| **Security / Crypto**| `expo-crypto`, `expo-web-browser` | SDK 58 | Băm SHA-256 PKCE Code Challenge |
+| **Cloud Distribution**| EAS Update & Expo Cloud | v58.0.19 | Phân phối mã nguồn trực tiếp qua kênh `main` |
 | **Storage / Cache** | `@react-native-async-storage/async-storage` | v3.1.1 | Lưu trữ local state & cached session |
 | **Client State** | Zustand | v5.0.15 | Quản lý filter, search, phiên đăng nhập |
 | **Server State** | TanStack Query (React Query) | v5.103.1 | Quản lý server cache, revalidation & mutations |
